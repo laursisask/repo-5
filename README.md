@@ -1,7 +1,7 @@
 # Bridgekeeper - What is your (Re)Quest?
 
 [![Build & Test](https://github.com/devnw/bridgekeeper/actions/workflows/build.yml/badge.svg)](https://github.com/devnw/bridgekeeper/actions/workflows/build.yml)
-[![Go Report Card](https://goreportcard.com/badge/devnw.com/bridgekeeper)](https://goreportcard.com/badge/devnw.com/bridgekeeper)
+<!-- [![Go Report Card](https://goreportcard.com/badge/devnw.com/bridgekeeper)](https://goreportcard.com/badge/devnw.com/bridgekeeper) -->
 [![GoDoc](https://godoc.org/devnw.com/bridgekeeper?status.svg)](https://pkg.go.dev/devnw.com/bridgekeeper)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
