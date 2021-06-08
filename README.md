@@ -1,18 +1,18 @@
 # Bridgekeeper - What is your (Re)Quest?
 
-## Request Throttling Wrapper For `http.Client` or any implementation of `bridgekeeper.Client`
-
 [![Build & Test](https://github.com/devnw/bridgekeeper/actions/workflows/build.yml/badge.svg)](https://github.com/devnw/bridgekeeper/actions/workflows/build.yml)
 [![Go Report Card](https://goreportcard.com/badge/devnw.com/bridgekeeper)](https://goreportcard.com/badge/devnw.com/bridgekeeper)
 [![GoDoc](https://godoc.org/devnw.com/bridgekeeper?status.svg)](https://pkg.go.dev/devnw.com/bridgekeeper)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-`bridgekeeper` replaces the hard implementation of `http.Client` with an
-implementation of a shared interface such that anything implementing the
-`bridgekeeper.Client` interface can use `bridgekeeper` to throttle API requests through the configuration of bridgekeeper.
+## Bridgekeeper is a request throttler for http.Client
 
-### Use Bridgekeeper
+Bridgekeeper replaces the hard implementation of `http.Client` with an
+implementation of a shared interface such that anything implementing the
+`bridgekeeper.Client` interface can use Bridgekeeper to throttle API requests through configuration.
+
+### Using Bridgekeeper
 
 ```go
 go get -u devnw.com/bridgekeeper@latest
