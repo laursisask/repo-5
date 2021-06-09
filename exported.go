@@ -159,7 +159,7 @@ func (k *keeper) Do(request *http.Request) (*http.Response, error) {
 		// Wait for the response from the request
 		select {
 		case <-ctx.Done():
-			return nil, context.Canceled
+			return nil, ctx.Err()
 		case resp, ok := <-responsechan:
 			if !ok {
 				return nil, fmt.Errorf("response channel closed prematurely")
