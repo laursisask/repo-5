@@ -298,6 +298,56 @@ func Test_Do_FailOpen(t *testing.T) {
 	}
 }
 
+func Test_Do_Request_Timeout_ReqWOutCtx(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	client := New(
+		ctx,
+		&httpclient{
+			delay: time.Minute,
+		},
+		0,
+		0,
+		0,
+		time.Second,
+	)
+
+	_, err := client.Do(newGetReqWOutCtx())
+	if err != nil {
+		if err != context.DeadlineExceeded {
+			t.Fatalf("expected context.DeadlineExceeded; got %T", err)
+		}
+	} else {
+		t.Fatal("Expected timeout error")
+	}
+}
+
+func Test_Do_Request_Timeout_ReqWCtx(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	client := New(
+		ctx,
+		&httpclient{
+			delay: time.Minute,
+		},
+		0,
+		0,
+		0,
+		time.Second,
+	)
+
+	_, err := client.Do(newGetReqWCtx())
+	if err != nil {
+		if err != context.DeadlineExceeded {
+			t.Fatalf("expected context.DeadlineExceeded; got %T", err)
+		}
+	} else {
+		t.Fatal("Expected timeout error")
+	}
+}
+
 func Test_New_Defaults(t *testing.T) {
 	// Setting the value for default http timeout
 	http.DefaultClient.Timeout = time.Millisecond

@@ -110,42 +110,23 @@ func (k *keeper) handleRequest(req *requestWrapper) {
 		case <-req.ctx.Done():
 		case req.response <- responseWrapper{
 			response: resp,
-			err:      fmt.Errorf("request returned a null response"),
+			err:      fmt.Errorf("request returned a nil response"),
 		}:
 			return
 		}
 	}
 
-	// Successful Request
-	if err == nil && resp.StatusCode < 300 {
+	if (err != nil || resp.StatusCode >= 300) && req.attempts < k.retries {
+		// Read and close the body of the response
+		readAndClose(resp.Body)
+
+		go k.resend(req, timer(resp.Header.Get("Retry-After")))
+	} else {
 		select {
 		case <-req.ctx.Done():
 		case req.response <- responseWrapper{resp, err}:
-			return
 		}
 	}
-
-	// If the request received a 404 respnose or the retries have run out then
-	// return the response
-	if resp.StatusCode == http.StatusNotFound || // 404 Response
-		k.retries == 0 || // No Retries
-		(k.retries > 0 && req.attempts >= k.retries) { // Retries exceeded
-		select {
-		case <-req.ctx.Done():
-		case req.response <- responseWrapper{
-			resp,
-			fmt.Errorf(
-				"retries exceeded for request | err: %s",
-				err,
-			)}:
-		}
-		return
-	}
-
-	// Read and close the body of the response
-	readAndClose(resp.Body)
-
-	go k.resend(req, timer(resp.Header.Get("Retry-After")))
 }
 
 /*
