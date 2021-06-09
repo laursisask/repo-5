@@ -387,42 +387,22 @@ func Test_timer_intHeader(t *testing.T) {
 		expected    time.Duration
 		tolerance   time.Duration
 	}{
-		"integer w/s - 1s": {
-			"1s",
-			time.Second,
-			time.Second,
-		},
-		"integer w/s - 2s": {
-			"2s",
-			time.Second * 2,
-			time.Second,
-		},
-		"integer w/s - 5s": {
-			"5s",
-			time.Second * 5,
-			time.Second,
-		},
-		"integer w/s - 10s": {
-			"10s",
-			time.Second * 10,
-			time.Second,
-		},
-		"integer wout/s - 1s": {
+		"integer 1s": {
 			"1",
 			time.Second,
 			time.Second,
 		},
-		"integer wout/s - 2s": {
+		"integer 2s": {
 			"2",
 			time.Second * 2,
 			time.Second,
 		},
-		"integer wout/s - 5s": {
+		"integer 5s": {
 			"5",
 			time.Second * 5,
 			time.Second,
 		},
-		"integer wout/s - 10s": {
+		"integer 10s": {
 			"10",
 			time.Second * 10,
 			time.Second,
@@ -447,7 +427,7 @@ func Test_timer_intHeader(t *testing.T) {
 			tstart := time.Now()
 
 			<-timer.C
-			diff := time.Now().Sub(tstart)
+			diff := time.Since(tstart)
 			expPos := test.expected + test.tolerance
 			expNeg := test.expected - test.tolerance
 			if diff < expNeg || diff > expPos {
@@ -502,7 +482,7 @@ func Test_timer_timeHeader(t *testing.T) {
 			tstart := time.Now()
 
 			<-timer.C
-			diff := time.Now().Sub(tstart)
+			diff := time.Since(tstart)
 			expPos := test.expected + test.tolerance
 			expNeg := test.expected - test.tolerance
 			if diff < expNeg || diff > expPos {

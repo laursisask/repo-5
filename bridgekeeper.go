@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
+	"strconv"
 	"time"
 )
 
@@ -148,23 +148,38 @@ func (k *keeper) handleRequest(req *requestWrapper) {
 	go k.resend(req, timer(resp.Header.Get("Retry-After")))
 }
 
+/*
+https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html
+14.37 Retry-After
+The Retry-After response-header field can be used with a
+503 (Service Unavailable) response to indicate how long the
+service is expected to be unavailable to the requesting client.
+This field MAY also be used with any 3xx (Redirection) response
+to indicate the minimum time the user-agent is asked wait before
+issuing the redirected request. The value of this field can be either
+an HTTP-date or an integer number of seconds (in decimal) after the
+time of the response.
+
+       Retry-After  = "Retry-After" ":" ( HTTP-date | delta-seconds )
+Two examples of its use are
+
+       Retry-After: Fri, 31 Dec 1999 23:59:59 GMT
+       Retry-After: 120
+In the latter example, the delay is 2 minutes.
+*/
 func timer(retryHeader string) *time.Timer {
 	if retryHeader == "" {
 		return time.NewTimer(0)
 	}
 
+	delay, err := strconv.Atoi(retryHeader)
+	if err == nil {
+		return time.NewTimer(time.Second * time.Duration(delay))
+	}
+
 	t, err := time.Parse(time.RFC1123, retryHeader)
 	if err == nil {
-		return time.NewTimer(t.Sub(time.Now()))
-	}
-
-	if !strings.HasSuffix(retryHeader, "s") {
-		retryHeader = retryHeader + "s"
-	}
-
-	rdelay, err := time.ParseDuration(retryHeader)
-	if err == nil {
-		return time.NewTimer(rdelay)
+		return time.NewTimer(time.Until(t))
 	}
 
 	return time.NewTimer(0)
