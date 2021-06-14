@@ -116,7 +116,7 @@ func (k *keeper) handleRequest(req *requestWrapper) {
 		}
 	}
 
-	if (err != nil || resp.StatusCode >= 300) && req.attempts < k.retries {
+	if (err != nil || resp.StatusCode >= 400) && req.attempts < k.retries {
 		// Read and close the body of the response
 		readAndClose(resp.Body)
 
