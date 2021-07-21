@@ -1,4 +1,4 @@
-FROM aws/codebuild/standard:5.0
+FROM amazon/aws-codebuild-local:latest
 
 RUN mkdir /cdk
 
