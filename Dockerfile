@@ -1,4 +1,4 @@
-FROM amazon/aws-codebuild-local:latest
+FROM jsii/superchain
 
 RUN mkdir /cdk
 
