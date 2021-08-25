@@ -58,6 +58,8 @@ aws-cdk.aws-emr==v1.114.0
 aws-cdk.aws-events==v1.114.0
 aws-cdk.aws-events-targets==v1.114.0
 aws-cdk.aws-fsx==v1.114.0
+aws-cdk.aws_globalaccelerator==1.114.0
+aws-cdk.aws_globalaccelerator_endpoints==1.114.0
 aws-cdk.aws-gamelift==v1.114.0
 aws-cdk.aws-glue==v1.114.0
 aws-cdk.aws-greengrass==v1.114.0
