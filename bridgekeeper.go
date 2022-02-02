@@ -3,7 +3,6 @@ package bridgekeeper
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -105,27 +104,17 @@ func (k *keeper) handleRequest(req *requestWrapper) {
 	// Execute a call against the endpoint handling any potential panics from
 	// the http client
 	resp, err := k.execute(req)
-	if resp == nil {
-		select {
-		case <-req.ctx.Done():
-		case req.response <- responseWrapper{
-			response: resp,
-			err:      fmt.Errorf("request returned a nil response"),
-		}:
-			return
-		}
-	}
-
-	if (err != nil || resp.StatusCode >= 400) && req.attempts < k.retries {
+	if (err != nil || (resp != nil && resp.StatusCode >= 400)) && req.attempts < k.retries {
 		// Read and close the body of the response
 		readAndClose(resp.Body)
 
 		go k.resend(req, timer(resp.Header.Get("Retry-After")))
-	} else {
-		select {
-		case <-req.ctx.Done():
-		case req.response <- responseWrapper{resp, err}:
-		}
+		return
+	}
+
+	select {
+	case <-req.ctx.Done():
+	case req.response <- responseWrapper{resp, err}:
 	}
 }
 
