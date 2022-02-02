@@ -104,7 +104,16 @@ func (k *keeper) handleRequest(req *requestWrapper) {
 	// Execute a call against the endpoint handling any potential panics from
 	// the http client
 	resp, err := k.execute(req)
-	if (err != nil || (resp != nil && resp.StatusCode >= 400)) && req.attempts < k.retries {
+	if resp == nil {
+		select {
+		case <-req.ctx.Done():
+		case req.response <- responseWrapper{resp, err}:
+		}
+
+		return
+	}
+
+	if (err != nil || resp.StatusCode >= 400) && req.attempts < k.retries {
 		// Read and close the body of the response
 		readAndClose(resp.Body)
 
