@@ -1,4 +1,4 @@
-module go.devnw.com/bridgekeeper
+module go.devnw.com/bk
 
 go 1.16
 

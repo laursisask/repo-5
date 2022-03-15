@@ -1,4 +1,4 @@
-// Package bridgekeeper is intended to create a client side load balancer or
+// package bk is intended to create a client side load balancer or
 // rate limiter for API integrations. This library is specifically designed to
 // wrap the `Do` method of the http.Client but since it uses an interface
 // abstraction it can wrap any interface and limit requests.
@@ -7,7 +7,7 @@
 // - Delay between requests
 // - Number of retries per request
 // - Concurrency limit for the client
-package bridgekeeper
+package bk
 
 import (
 	"context"
@@ -23,13 +23,12 @@ type Client interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// New creates a new instance of the bridgekeeper for use with an api. New returns an
-// interface implementation of Client which replaces the implementation of an
-// http.Client interface so that it looks like an http.Client and can perform
-// the same functions but it limits the requests using the parameters defined
-// when created.
-// NOTE: If a request timeout is not set at creation then the default HTTP
-// client request timeout will be used
+// New creates a new instance of the bridgekeeper for use with an api. New
+// returns an interface implementation of Client which replaces the
+// implementation of an http.Client interface so that it looks like an
+// http.Client and can perform the same functions but it limits the requests
+// using the parameters defined when created. NOTE: If a request timeout is not
+// set at creation then the default HTTP client request timeout will be used
 func New(
 	ctx context.Context,
 	client Client,
@@ -62,8 +61,8 @@ func New(
 
 	ctx, cancel := context.WithCancel(ctx)
 
-	// If a nil client is passed to the bridgekeeper then initialize using the default
-	// http client
+	// If a nil client is passed to the bridgekeeper then initialize using the
+	// default http client
 	if client == nil {
 		client = http.DefaultClient
 	}
