@@ -31,7 +31,6 @@ import org.apache.xmlbeans.XmlObject;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTP;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRow;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSdtBlock;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSdtRun;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTShd;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTbl;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth;
@@ -70,6 +69,7 @@ public class XWPFTableCell implements IBody, ICell {
     protected List<XWPFParagraph> paragraphs;
     protected List<XWPFTable> tables;
     protected List<IBodyElement> bodyElements;
+    protected List<XWPFSDTBlock> sdtBlocks;
 
     protected IBody part;
     private final XWPFTableRow tableRow;
@@ -85,6 +85,7 @@ public class XWPFTableCell implements IBody, ICell {
         bodyElements = new ArrayList<>();
         paragraphs = new ArrayList<>();
         tables = new ArrayList<>();
+        sdtBlocks = new ArrayList<>();
 
         try (XmlCursor cursor = ctTc.newCursor()) {
             cursor.selectPath("./*");
@@ -101,11 +102,9 @@ public class XWPFTableCell implements IBody, ICell {
                     bodyElements.add(t);
                 }
                 if (o instanceof CTSdtBlock) {
-                    XWPFSDT c = new XWPFSDT((CTSdtBlock) o, this);
-                    bodyElements.add(c);
-                }
-                if (o instanceof CTSdtRun) {
-                    XWPFSDT c = new XWPFSDT((CTSdtRun) o, this);
+                    XWPFSDTBlock c = new XWPFSDTBlock((CTSdtBlock) o, this);
+                    sdtBlocks.add(c);
+
                     bodyElements.add(c);
                 }
             }
@@ -130,6 +129,11 @@ public class XWPFTableCell implements IBody, ICell {
             ctTc.addNewP();
         }
         ctTc.setPArray(0, p.getCTP());
+    }
+
+    public void setSDTBlock(int pos, XWPFSDTBlock sdt) {
+        sdtBlocks.set(pos, sdt);
+        ctTc.setSdtArray(pos, sdt.getCtSdtBlock());
     }
 
     /**
@@ -171,6 +175,18 @@ public class XWPFTableCell implements IBody, ICell {
         paragraphs.remove(pos);
         ctTc.removeP(pos);
         bodyElements.remove(removedParagraph);
+    }
+
+    /**
+     * removes a SDT Block of this tablecell
+     *
+     * @param pos The position in the list of SDT Blocks, 0-based
+     */
+    public void removeSdtBlock(int pos) {
+        XWPFSDTBlock removedSdt = sdtBlocks.get(pos);
+        sdtBlocks.remove(pos);
+        ctTc.removeSdt(pos);
+        bodyElements.remove(removedSdt);
     }
 
     @Override
@@ -281,7 +297,7 @@ public class XWPFTableCell implements IBody, ICell {
         }
         while (cursor.toPrevSibling()) {
             o = cursor.getObject();
-            if (o instanceof CTP || o instanceof CTTbl)
+            if (o instanceof CTP || o instanceof CTTbl || o instanceof CTSdtBlock)
                 i++;
         }
         bodyElements.add(i, newP);
@@ -316,7 +332,7 @@ public class XWPFTableCell implements IBody, ICell {
             try (XmlCursor cursor2 = t.newCursor()) {
                 while (cursor2.toPrevSibling()) {
                     o = cursor2.getObject();
-                    if (o instanceof CTP || o instanceof CTTbl)
+                    if (o instanceof CTP || o instanceof CTTbl || o instanceof CTSdtBlock)
                         i++;
                 }
             }
@@ -328,6 +344,62 @@ public class XWPFTableCell implements IBody, ICell {
             return newT;
         }
         return null;
+    }
+
+    @Override
+    public XWPFSDTBlock insertNewSdtBlock(XmlCursor cursor) {
+        if (isCursorInTableCell(cursor)) {
+            String uri = CTSdtBlock.type.getName().getNamespaceURI();
+            String localPart = "sdt";
+            cursor.beginElement(localPart, uri);
+            cursor.toParent();
+            CTSdtBlock sdt = (CTSdtBlock) cursor.getObject();
+            XWPFSDTBlock newSdtBlock = new XWPFSDTBlock(sdt, this);
+            XmlObject o = null;
+            while (!(o instanceof CTSdtBlock) && (cursor.toPrevSibling())) {
+                o = cursor.getObject();
+            }
+            if (!(o instanceof CTSdtBlock)) {
+                sdtBlocks.add(0, newSdtBlock);
+            } else {
+                int pos = sdtBlocks.indexOf(getSdtBlock((CTSdtBlock) o)) + 1;
+                sdtBlocks.add(pos, newSdtBlock);
+            }
+            int i = 0;
+            XmlCursor sdtCursor = sdt.newCursor();
+            try {
+                cursor.toCursor(sdtCursor);
+                while (cursor.toPrevSibling()) {
+                    o = cursor.getObject();
+                    if (o instanceof CTP || o instanceof CTTbl || o instanceof CTSdtBlock) {
+                        i++;
+                    }
+                }
+                bodyElements.add(i, newSdtBlock);
+                cursor.toCursor(sdtCursor);
+                cursor.toEndToken();
+                return newSdtBlock;
+            } finally {
+                sdtCursor.dispose();
+                cursor.dispose();
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public XWPFSDTBlock getSdtBlock(CTSdtBlock ctSdtBlock) {
+        for (int i = 0; i < sdtBlocks.size(); i++) {
+            if (getSdtBlocks().get(i).getCtSdtBlock() == ctSdtBlock) {
+                return getSdtBlocks().get(i);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public List<XWPFSDTBlock> getSdtBlocks() {
+        return Collections.unmodifiableList(sdtBlocks);
     }
 
     /**
@@ -461,12 +533,34 @@ public class XWPFTableCell implements IBody, ICell {
             if (!isLast) {
                 text.append('\n');
             }
-        } else if (e instanceof XWPFSDT) {
-            text.append(((XWPFSDT) e).getContent().getText());
+        } else if (e instanceof XWPFSDTBlock) {
+            text.append(((XWPFSDTBlock) e).getContent().getText());
             if (!isLast) {
                 text.append('\t');
             }
         }
+    }
+
+    @Override
+    public boolean removeBodyElement(int pos) {
+        if (pos >= 0 && pos < bodyElements.size()) {
+            IBodyElement bodyElement = bodyElements.get(pos);
+            BodyElementType type = bodyElement.getElementType();
+            if (type == BodyElementType.TABLE) {
+                int tablePos = tables.indexOf(bodyElement);
+                removeTable(tablePos);
+            }
+            if (type == BodyElementType.PARAGRAPH) {
+                int paraPos = paragraphs.indexOf(bodyElement);
+                removeParagraph(paraPos);
+            }
+            if (type == BodyElementType.CONTENTCONTROL) {
+                int sdtPos = sdtBlocks.indexOf(bodyElement);
+                removeSdtBlock(sdtPos);
+            }
+            return true;
+        }
+        return false;
     }
 
     /**

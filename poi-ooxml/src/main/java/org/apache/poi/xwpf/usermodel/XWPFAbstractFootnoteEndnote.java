@@ -51,6 +51,7 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
     protected CTFtnEdn ctFtnEdn;
     protected XWPFAbstractFootnotesEndnotes footnotes;
     protected XWPFDocument document;
+    private List<XWPFSDTBlock> sdtBlocks = new ArrayList<>();
 
     public XWPFAbstractFootnoteEndnote() {
         super();
@@ -87,7 +88,7 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
                     bodyElements.add(t);
                     tables.add(t);
                 } else if (o instanceof CTSdtBlock) {
-                    XWPFSDT c = new XWPFSDT((CTSdtBlock) o, this);
+                    XWPFSDTBlock c = new XWPFSDTBlock((CTSdtBlock) o, this);
                     bodyElements.add(c);
                 }
 
@@ -322,7 +323,7 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
             try (XmlCursor cursor1 = t.newCursor()) {
                 while (cursor1.toPrevSibling()) {
                     o = cursor1.getObject();
-                    if (o instanceof CTP || o instanceof CTTbl)
+                    if (o instanceof CTP || o instanceof CTTbl || o instanceof CTSdtBlock)
                         i++;
                 }
                 bodyElements.add(i, newT);
@@ -366,7 +367,7 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
             }
             while (cursor.toPrevSibling()) {
                 o = cursor.getObject();
-                if (o instanceof CTP || o instanceof CTTbl)
+                if (o instanceof CTP || o instanceof CTTbl || o instanceof CTSdtBlock)
                     i++;
             }
             bodyElements.add(i, newP);
@@ -511,4 +512,14 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
         return table;
     }
 
+    /**
+     * Unimplemented method
+     *
+     * @param pos
+     * @return
+     */
+    @Override
+    public boolean removeBodyElement(int pos) {
+        throw new UnsupportedOperationException();
+    }
 }

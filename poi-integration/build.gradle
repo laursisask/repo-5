@@ -194,6 +194,3 @@ javadoc.onlyIf { false }
 javadocJar.onlyIf { false }
 
 sourcesJar.onlyIf { false }
-
-generateMetadataFileForPOIPublication.enabled = false
-publishPOIPublicationToMavenLocal.enabled = false
