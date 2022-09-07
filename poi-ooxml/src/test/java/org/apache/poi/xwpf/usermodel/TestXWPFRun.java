@@ -18,13 +18,7 @@ package org.apache.poi.xwpf.usermodel;
 
 import static org.apache.poi.xwpf.XWPFTestDataSamples.openSampleDocument;
 import static org.apache.poi.xwpf.XWPFTestDataSamples.writeOutAndReadBack;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -46,17 +40,7 @@ import org.openxmlformats.schemas.drawingml.x2006.main.CTBlipFillProperties;
 import org.openxmlformats.schemas.drawingml.x2006.picture.CTPicture;
 import org.openxmlformats.schemas.officeDocument.x2006.sharedTypes.STOnOff1;
 import org.openxmlformats.schemas.officeDocument.x2006.sharedTypes.STVerticalAlignRun;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBr;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTOnOff;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTP;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTR;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTRPr;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTText;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STBrClear;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STEm;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STHighlightColor;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STThemeColor;
-import org.openxmlformats.schemas.wordprocessingml.x2006.main.STUnderline;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
 
 /**
  * Tests for XWPF Run
@@ -845,6 +829,45 @@ class TestXWPFRun {
                     assertEquals(isWhitespace, ctText.isSetSpace());
                 }
             }
+        }
+    }
+
+    @Test
+    void testSelectAlternateContentPictureInDrawing() throws IOException {
+        try (XWPFDocument document = openSampleDocument("alternate-content-picture-in-drawing.docx")) {
+            assertEquals(1, document.getBodyElements().size());
+            assertEquals(1, document.getParagraphs().size());
+
+            XWPFParagraph paragraph = document.getParagraphs().get(0);
+            assertEquals(1, paragraph.getIRuns().size());
+            assertEquals(1, paragraph.getRuns().size());
+
+            XWPFRun actualRun = paragraph.getRuns().get(0);
+
+            List<XWPFPicture> actualEmbeddedPictures = actualRun.getEmbeddedPictures();
+            assertEquals(2, actualEmbeddedPictures.size());
+            assertNotSame(actualEmbeddedPictures.get(0), actualEmbeddedPictures.get(1));
+
+            assertEquals(0, actualRun.getEmbeddedGraphics().size());
+        }
+    }
+
+    @Test
+    void testSelectAlternateContentGraphic() throws IOException {
+        try (XWPFDocument document = openSampleDocument("alternate-content-graphic.docx")) {
+            assertEquals(1, document.getBodyElements().size());
+            assertEquals(1, document.getParagraphs().size());
+
+            XWPFParagraph paragraph = document.getParagraphs().get(0);
+            assertEquals(1, paragraph.getIRuns().size());
+            assertEquals(1, paragraph.getRuns().size());
+
+            XWPFRun actualRun = paragraph.getRuns().get(0);
+
+            assertEquals(0, actualRun.getEmbeddedPictures().size());
+
+            List<CTDrawing> actualEmbeddedGraphics = actualRun.getEmbeddedGraphics();
+            assertEquals(1, actualEmbeddedGraphics.size());
         }
     }
 }
