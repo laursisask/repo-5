@@ -177,6 +177,7 @@ public class XWPFRun implements ISDTContentsRun, IRunElement, CharacterRun {
             }
         } catch (XmlException | IOException e) {
             LOG.error("Error on select run alternate content drawing", e);
+            throw new POIXMLException(e);
         }
         return drawings;
     }
