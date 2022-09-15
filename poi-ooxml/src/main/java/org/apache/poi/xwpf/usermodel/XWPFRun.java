@@ -30,6 +30,8 @@ import java.util.List;
 
 import javax.xml.namespace.QName;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.poi.common.usermodel.PictureType;
 import org.apache.poi.ooxml.POIXMLException;
 import org.apache.poi.ooxml.util.DocumentHelper;
@@ -72,10 +74,13 @@ import org.xml.sax.SAXException;
  * XWPFRun object defines a region of text with a common set of properties
  */
 public class XWPFRun implements ISDTContentsRun, IRunElement, CharacterRun {
+    private static final Logger LOG = LogManager.getLogger(XWPFRun.class);
+
     private final CTR run;
     private final String pictureText;
     private final IRunBody parent;
     private final List<XWPFPicture> pictures;
+    private final List<CTDrawing> graphics;
 
     /**
      * @param r the CTR bean which holds the run attributes
@@ -107,6 +112,7 @@ public class XWPFRun implements ISDTContentsRun, IRunElement, CharacterRun {
         List<XmlObject> pictTextObjs = new ArrayList<>();
         pictTextObjs.addAll(Arrays.asList(r.getPictArray()));
         pictTextObjs.addAll(Arrays.asList(r.getDrawingArray()));
+        pictTextObjs.addAll(selectAlternateContentDrawings(r));
         for (XmlObject o : pictTextObjs) {
             XmlObject[] ts = o.selectPath("declare namespace w='http://schemas.openxmlformats.org/wordprocessingml/2006/main' .//w:t");
             for (XmlObject t : ts) {
@@ -132,6 +138,48 @@ public class XWPFRun implements ISDTContentsRun, IRunElement, CharacterRun {
                 pictures.add(picture);
             }
         }
+
+        graphics = new ArrayList<>();
+        for (XmlObject o : pictTextObjs) {
+            CTDrawing ctDrawing = getGraphic(o);
+            if (ctDrawing != null) {
+                graphics.add(ctDrawing);
+            }
+        }
+    }
+
+    /**
+     * Some Word document uses alternate content which was introduced after publishing Office Open XML in 2007.
+     * So apache-poi does not provide methods to get that content as it only provides methods for Office Open XML according standard ECMA-376.
+     *
+     * Example:
+     * <w:r>
+     *     <w:drawing>...</w:drawing>
+     *     <mc:AlternateContent>
+     *         <mc:Choice Requires="wpg">
+     *             <w:drawing>...</w:drawing>
+     *         </mc:Choice>
+     *         <mc:Fallback>...</mc:Fallback>
+     *      </mc:AlternateContent>
+     * <w:r>
+     */
+    private List<CTDrawing> selectAlternateContentDrawings(CTR ctr) {
+        List<CTDrawing> drawings = new ArrayList<>();
+        try {
+            try (XmlCursor cursor = ctr.newCursor()) {
+                cursor.selectPath("declare namespace w='http://schemas.openxmlformats.org/wordprocessingml/2006/main' .//*/w:drawing");
+                while (cursor.hasNextSelection()) {
+                    cursor.toNextSelection();
+                    XmlObject obj = cursor.getObject();
+                    CTDrawing drawing = CTDrawing.Factory.parse(obj.newInputStream());
+                    drawings.add(drawing);
+                }
+            }
+        } catch (XmlException | IOException e) {
+            LOG.error("Error on select run alternate content drawing", e);
+            throw new POIXMLException(e);
+        }
+        return drawings;
     }
 
     /**
@@ -176,6 +224,21 @@ public class XWPFRun implements ISDTContentsRun, IRunElement, CharacterRun {
         }
         return pics;
     }
+
+    private CTDrawing getGraphic(XmlObject o) {
+        // Check that <w:drawing> not contain picture
+        XmlObject[] picts = o.selectPath("declare namespace pic='" + CTPicture.type.getName().getNamespaceURI() + "' .//pic:pic");
+        if (picts.length == 0) {
+            try {
+                return CTDrawing.Factory.parse(o.toString(), DEFAULT_XML_OPTIONS);
+            } catch (XmlException e) {
+                throw new POIXMLException(e);
+            }
+        }
+
+        return null;
+    }
+
 
     /**
      * Get the currently used CTR object
@@ -1242,6 +1305,10 @@ public class XWPFRun implements ISDTContentsRun, IRunElement, CharacterRun {
         return pictures;
     }
 
+    public List<CTDrawing> getEmbeddedGraphics() {
+        return graphics;
+    }
+
     /**
      * Set the style ID for the run.
      *
@@ -1327,9 +1394,9 @@ public class XWPFRun implements ISDTContentsRun, IRunElement, CharacterRun {
                 }
             }
             // Any picture text?
-            if (pictureText != null && pictureText.length() > 0) {
-                text.append("\n").append(pictureText).append("\n");
-            }
+            // if (pictureText != null && pictureText.length() > 0) {
+            //     text.append("\n").append(pictureText).append("\n");
+            // }
         }
         return text.toString();
     }
