@@ -63,4 +63,12 @@ public class XWPFSDTCell extends XWPFAbstractSDT implements ICell {
         this.cellContent = xwpfsdtContentCell;
         return xwpfsdtContentCell;
     }
+
+    @Override
+    public XWPFDocument getDocument() {
+        if (part != null) {
+            return part.getXWPFDocument();
+        }
+        return null;
+    }
 }

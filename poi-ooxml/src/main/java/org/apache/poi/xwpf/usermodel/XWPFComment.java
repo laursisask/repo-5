@@ -37,6 +37,7 @@ public class XWPFComment implements IBody {
     private List<XWPFParagraph> paragraphs = new ArrayList<>();
     private List<XWPFTable> tables = new ArrayList<>();
     private List<IBodyElement> bodyElements = new ArrayList<>();
+    private List<XWPFSDTBlock> sdtBlocks = new ArrayList<>();
 
     public XWPFComment(CTComment ctComment, XWPFComments comments) {
         this.comments = comments;
@@ -61,6 +62,7 @@ public class XWPFComment implements IBody {
                 } else if (o instanceof CTSdtBlock) {
                     XWPFSDTBlock c = new XWPFSDTBlock((CTSdtBlock) o, this);
                     bodyElements.add(c);
+                    sdtBlocks.add(c);
                 }
 
             }
@@ -119,6 +121,11 @@ public class XWPFComment implements IBody {
     }
 
     @Override
+    public List<XWPFSDTBlock> getSdtBlocks() {
+        return sdtBlocks;
+    }
+
+    @Override
     public XWPFParagraph getParagraph(CTP p) {
         for (XWPFParagraph paragraph : paragraphs) {
             if (paragraph.getCTP().equals(p))
@@ -134,6 +141,16 @@ public class XWPFComment implements IBody {
                 return null;
             if (table.getCTTbl().equals(ctTable))
                 return table;
+        }
+        return null;
+    }
+
+    @Override
+    public XWPFSDTBlock getSdtBlock(CTSdtBlock ctSdtBlock) {
+        for (int i = 0; i < sdtBlocks.size(); i++) {
+            if (getSdtBlocks().get(i).getCtSdtBlock() == ctSdtBlock) {
+                return getSdtBlocks().get(i);
+            }
         }
         return null;
     }
@@ -239,6 +256,43 @@ public class XWPFComment implements IBody {
     }
 
     @Override
+    public XWPFSDTBlock insertNewSdtBlock(XmlCursor cursor) {
+        if (isCursorInCmt(cursor)) {
+            String uri = CTSdtBlock.type.getName().getNamespaceURI();
+            String localPart = "sdt";
+            cursor.beginElement(localPart, uri);
+            cursor.toParent();
+            CTSdtBlock sdt = (CTSdtBlock) cursor.getObject();
+            XWPFSDTBlock newSdtBlock = new XWPFSDTBlock(sdt, this);
+            XmlObject o = null;
+            while (!(o instanceof CTSdtBlock) && (cursor.toPrevSibling())) {
+                o = cursor.getObject();
+            }
+            if (!(o instanceof CTSdtBlock)) {
+                sdtBlocks.add(0, newSdtBlock);
+            } else {
+                int pos = sdtBlocks.indexOf(getSdtBlock((CTSdtBlock) o)) + 1;
+                sdtBlocks.add(pos, newSdtBlock);
+            }
+            int i = 0;
+            try (XmlCursor sdtCursor = sdt.newCursor()) {
+                cursor.toCursor(sdtCursor);
+                while (cursor.toPrevSibling()) {
+                    o = cursor.getObject();
+                    if (o instanceof CTP || o instanceof CTTbl || o instanceof CTSdtBlock) {
+                        i++;
+                    }
+                }
+                bodyElements.add(i, newSdtBlock);
+                cursor.toCursor(sdtCursor);
+                cursor.toEndToken();
+                return newSdtBlock;
+            }
+        }
+        return null;
+    }
+
+    @Override
     public void insertTable(int pos, XWPFTable table) {
         bodyElements.add(pos, table);
         int i = 0;
@@ -304,6 +358,28 @@ public class XWPFComment implements IBody {
         paragraphs.add(paragraph);
         bodyElements.add(paragraph);
         return paragraph;
+    }
+
+    @Override
+    public XWPFTable createTable() {
+        XWPFTable table = new XWPFTable(ctComment.addNewTbl(), this);
+        bodyElements.add(table);
+        tables.add(table);
+        return table;
+    }
+
+    @Override
+    public XWPFSDTBlock createSdt() {
+        XWPFSDTBlock sdt = new XWPFSDTBlock(ctComment.addNewSdt(), this);
+        bodyElements.add(sdt);
+        sdtBlocks.add(sdt);
+        return sdt;
+    }
+
+    @Override
+    public void setSDTBlock(int pos, XWPFSDTBlock sdt) {
+        sdtBlocks.set(pos, sdt);
+        ctComment.setSdtArray(pos, sdt.getCtSdtBlock());
     }
 
     public void removeParagraph(XWPFParagraph paragraph) {
@@ -422,23 +498,96 @@ public class XWPFComment implements IBody {
         ctComment.setDate(date);
     }
 
+    /**
+     * Finds that for example the 2nd entry in the body list is the 1st paragraph
+     */
+    private int getBodyElementSpecificPos(int pos, List<? extends IBodyElement> list) {
+        // If there's nothing to find, skip it
+        if (list.isEmpty()) {
+            return -1;
+        }
+
+        if (pos >= 0 && pos < bodyElements.size()) {
+            // Ensure the type is correct
+            IBodyElement needle = bodyElements.get(pos);
+            if (needle.getElementType() != list.get(0).getElementType()) {
+                // Wrong type
+                return -1;
+            }
+
+            // Work back until we find it
+            int startPos = Math.min(pos, list.size() - 1);
+            for (int i = startPos; i >= 0; i--) {
+                if (list.get(i) == needle) {
+                    return i;
+                }
+            }
+        }
+
+        // Couldn't be found
+        return -1;
+    }
+
+    /**
+     * get with the position of a table in the bodyelement array list
+     * the position of this table in the table array list
+     *
+     * @param pos position of the table in the bodyelement array list
+     * @return if there is a table at the position in the bodyelement array list,
+     * else it will return null.
+     */
+    public int getTablePos(int pos) {
+        return getBodyElementSpecificPos(pos, tables);
+    }
+
+    /**
+     * Look up the paragraph at the specified position in the body elements list
+     * and return this paragraphs position in the paragraphs list
+     *
+     * @param pos The position of the relevant paragraph in the body elements
+     *            list
+     * @return the position of the paragraph in the paragraphs list, if there is
+     * a paragraph at the position in the bodyelements list. Else it
+     * will return -1
+     */
+    public int getParagraphPos(int pos) {
+        return getBodyElementSpecificPos(pos, paragraphs);
+    }
+
+    /**
+     * get with the position of a table in the bodyelement array list
+     * the position of this SDT in the contentControls array list
+     *
+     * @param pos position of the SDT in the bodyelement array list
+     * @return if there is a table at the position in the bodyelement array list,
+     * else it will return null.
+     */
+    public int getSDTPos(int pos) {
+        return getBodyElementSpecificPos(pos, sdtBlocks);
+    }
+
     @Override
     public boolean removeBodyElement(int pos) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public XWPFSDTBlock insertNewSdtBlock(XmlCursor cursor) {
-        return null;
-    }
-
-    @Override
-    public XWPFSDTBlock getSdtBlock(CTSdtBlock block) {
-        return null;
-    }
-
-    @Override
-    public List<XWPFSDTBlock> getSdtBlocks() {
-        return null;
+        if (pos >= 0 && pos < bodyElements.size()) {
+            BodyElementType type = bodyElements.get(pos).getElementType();
+            if (type == BodyElementType.TABLE) {
+                int tablePos = getTablePos(pos);
+                tables.remove(tablePos);
+                ctComment.removeTbl(tablePos);
+            }
+            if (type == BodyElementType.PARAGRAPH) {
+                int paraPos = getParagraphPos(pos);
+                paragraphs.remove(paraPos);
+                ctComment.removeP(paraPos);
+            }
+            if (type == BodyElementType.CONTENTCONTROL) {
+                int sdtPos = getSDTPos(pos);
+                sdtBlocks.remove(sdtPos);
+                ctComment.removeSdt(sdtPos);
+            }
+            bodyElements.remove(pos);
+            return true;
+        }
+        return false;
     }
 }

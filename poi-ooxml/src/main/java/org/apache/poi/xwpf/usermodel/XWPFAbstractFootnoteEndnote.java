@@ -90,6 +90,7 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
                 } else if (o instanceof CTSdtBlock) {
                     XWPFSDTBlock c = new XWPFSDTBlock((CTSdtBlock) o, this);
                     bodyElements.add(c);
+                    sdtBlocks.add(c);
                 }
 
             }
@@ -132,6 +133,11 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
     @Override
     public List<XWPFTable> getTables() {
         return tables;
+    }
+
+    @Override
+    public List<XWPFSDTBlock> getSdtBlocks() {
+        return sdtBlocks;
     }
 
     /**
@@ -214,6 +220,16 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
                 return null;
             if (table.getCTTbl().equals(ctTable))
                 return table;
+        }
+        return null;
+    }
+
+    @Override
+    public XWPFSDTBlock getSdtBlock(CTSdtBlock ctSdtBlock) {
+        for (int i = 0; i < sdtBlocks.size(); i++) {
+            if (getSdtBlocks().get(i).getCtSdtBlock() == ctSdtBlock) {
+                return getSdtBlocks().get(i);
+            }
         }
         return null;
     }
@@ -333,6 +349,43 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
                 cursor.toEndToken();
             }
             return newT;
+        }
+        return null;
+    }
+
+    @Override
+    public XWPFSDTBlock insertNewSdtBlock(XmlCursor cursor) {
+        if (isCursorInFtn(cursor)) {
+            String uri = CTSdtBlock.type.getName().getNamespaceURI();
+            String localPart = "sdt";
+            cursor.beginElement(localPart, uri);
+            cursor.toParent();
+            CTSdtBlock sdt = (CTSdtBlock) cursor.getObject();
+            XWPFSDTBlock newSdtBlock = new XWPFSDTBlock(sdt, this);
+            XmlObject o = null;
+            while (!(o instanceof CTSdtBlock) && (cursor.toPrevSibling())) {
+                o = cursor.getObject();
+            }
+            if (!(o instanceof CTSdtBlock)) {
+                sdtBlocks.add(0, newSdtBlock);
+            } else {
+                int pos = sdtBlocks.indexOf(getSdtBlock((CTSdtBlock) o)) + 1;
+                sdtBlocks.add(pos, newSdtBlock);
+            }
+            int i = 0;
+            try (XmlCursor sdtCursor = sdt.newCursor()) {
+                cursor.toCursor(sdtCursor);
+                while (cursor.toPrevSibling()) {
+                    o = cursor.getObject();
+                    if (o instanceof CTP || o instanceof CTTbl || o instanceof CTSdtBlock) {
+                        i++;
+                    }
+                }
+                bodyElements.add(i, newSdtBlock);
+                cursor.toCursor(sdtCursor);
+                cursor.toEndToken();
+                return newSdtBlock;
+            }
         }
         return null;
     }
@@ -498,6 +551,20 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
         return table;
     }
 
+    @Override
+    public XWPFSDTBlock createSdt() {
+        XWPFSDTBlock sdt = new XWPFSDTBlock(ctFtnEdn.addNewSdt(), this);
+        bodyElements.add(sdt);
+        sdtBlocks.add(sdt);
+        return sdt;
+    }
+
+    @Override
+    public void setSDTBlock(int pos, XWPFSDTBlock sdt) {
+        sdtBlocks.set(pos, sdt);
+        ctFtnEdn.setSdtArray(pos, sdt.getCtSdtBlock());
+    }
+
     /**
      * Appends a new {@link XWPFTable} to this footnote
      * @param rows Number of rows to initialize the table with
@@ -513,13 +580,95 @@ public abstract class XWPFAbstractFootnoteEndnote  implements Iterable<XWPFParag
     }
 
     /**
-     * Unimplemented method
-     *
-     * @param pos
-     * @return
+     * Finds that for example the 2nd entry in the body list is the 1st paragraph
      */
+    private int getBodyElementSpecificPos(int pos, List<? extends IBodyElement> list) {
+        // If there's nothing to find, skip it
+        if (list.isEmpty()) {
+            return -1;
+        }
+
+        if (pos >= 0 && pos < bodyElements.size()) {
+            // Ensure the type is correct
+            IBodyElement needle = bodyElements.get(pos);
+            if (needle.getElementType() != list.get(0).getElementType()) {
+                // Wrong type
+                return -1;
+            }
+
+            // Work back until we find it
+            int startPos = Math.min(pos, list.size() - 1);
+            for (int i = startPos; i >= 0; i--) {
+                if (list.get(i) == needle) {
+                    return i;
+                }
+            }
+        }
+
+        // Couldn't be found
+        return -1;
+    }
+
+    /**
+     * get with the position of a table in the bodyelement array list
+     * the position of this table in the table array list
+     *
+     * @param pos position of the table in the bodyelement array list
+     * @return if there is a table at the position in the bodyelement array list,
+     * else it will return null.
+     */
+    public int getTablePos(int pos) {
+        return getBodyElementSpecificPos(pos, tables);
+    }
+
+    /**
+     * Look up the paragraph at the specified position in the body elements list
+     * and return this paragraphs position in the paragraphs list
+     *
+     * @param pos The position of the relevant paragraph in the body elements
+     *            list
+     * @return the position of the paragraph in the paragraphs list, if there is
+     * a paragraph at the position in the bodyelements list. Else it
+     * will return -1
+     */
+    public int getParagraphPos(int pos) {
+        return getBodyElementSpecificPos(pos, paragraphs);
+    }
+
+    /**
+     * get with the position of a table in the bodyelement array list
+     * the position of this SDT in the contentControls array list
+     *
+     * @param pos position of the SDT in the bodyelement array list
+     * @return if there is a table at the position in the bodyelement array list,
+     * else it will return null.
+     */
+    public int getSDTPos(int pos) {
+        return getBodyElementSpecificPos(pos, sdtBlocks);
+    }
+
     @Override
     public boolean removeBodyElement(int pos) {
-        throw new UnsupportedOperationException();
+        if (pos >= 0 && pos < bodyElements.size()) {
+            BodyElementType type = bodyElements.get(pos).getElementType();
+            if (type == BodyElementType.TABLE) {
+                int tablePos = getTablePos(pos);
+                tables.remove(tablePos);
+                ctFtnEdn.removeTbl(tablePos);
+            }
+            if (type == BodyElementType.PARAGRAPH) {
+                int paraPos = getParagraphPos(pos);
+                paragraphs.remove(paraPos);
+                ctFtnEdn.removeP(paraPos);
+            }
+            if (type == BodyElementType.CONTENTCONTROL) {
+                int sdtPos = getSDTPos(pos);
+                sdtBlocks.remove(sdtPos);
+                ctFtnEdn.removeSdt(sdtPos);
+            }
+            bodyElements.remove(pos);
+            return true;
+        }
+        return false;
     }
 }

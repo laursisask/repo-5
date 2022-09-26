@@ -1,5 +1,6 @@
 package org.apache.poi.xwpf.usermodel;
 
+import org.apache.poi.ooxml.POIXMLDocumentPart;
 import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
@@ -8,59 +9,75 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
-
-    private IBody parent;
+public class XWPFSDTContentBlock implements ISDTContent, IBody {
     private CTSdtContentBlock ctSdtContentBlock;
-    private List<IBodyElement> bodyElements = new ArrayList<>();
-    private List<XWPFParagraph> paragraphs = new ArrayList<>();
-    private List<XWPFTable> tables = new ArrayList<>();
-    private List<XWPFSDTBlock> contentControls = new ArrayList<>();
+    private final List<IBodyElement> bodyElements = new ArrayList<>();
+    private final List<XWPFParagraph> paragraphs = new ArrayList<>();
+    private final List<XWPFTable> tables = new ArrayList<>();
+    private final List<XWPFSDTBlock> contentControls = new ArrayList<>();
+    private IBodyElement part;
 
-    public XWPFSDTContentBlock(CTSdtContentBlock block, IBody part) {
+    public XWPFSDTContentBlock(CTSdtContentBlock block, IBodyElement part) {
         if (block == null) {
             return;
         }
         this.ctSdtContentBlock = block;
-        this.parent = part;
+        this.part = part;
 
-        XmlCursor cursor = block.newCursor();
-        cursor.selectPath("./*");
-        while (cursor.toNextSelection()) {
-            XmlObject o = cursor.getObject();
-            if (o instanceof CTP) {
-                XWPFParagraph p = new XWPFParagraph((CTP) o, part);
-                bodyElements.add(p);
-                paragraphs.add(p);
-            } else if (o instanceof CTTbl) {
-                XWPFTable t = new XWPFTable((CTTbl) o, part);
-                bodyElements.add(t);
-                tables.add(t);
-            } else if (o instanceof CTSdtBlock) {
-                XWPFSDTBlock c = new XWPFSDTBlock(((CTSdtBlock) o), part);
-                bodyElements.add(c);
-                contentControls.add(c);
+        try (XmlCursor cursor = block.newCursor()) {
+            cursor.selectPath("./*");
+            while (cursor.toNextSelection()) {
+                XmlObject o = cursor.getObject();
+                if (o instanceof CTP) {
+                    XWPFParagraph p = new XWPFParagraph((CTP) o, this);
+                    bodyElements.add(p);
+                    paragraphs.add(p);
+                } else if (o instanceof CTTbl) {
+                    XWPFTable t = new XWPFTable((CTTbl) o, this);
+                    bodyElements.add(t);
+                    tables.add(t);
+                } else if (o instanceof CTSdtBlock) {
+                    XWPFSDTBlock c = new XWPFSDTBlock(((CTSdtBlock) o), this);
+                    bodyElements.add(c);
+                    contentControls.add(c);
+                }
             }
         }
-        cursor.dispose();
     }
 
     public CTSdtContentBlock getCtSdtContentBlock() {
         return ctSdtContentBlock;
     }
 
+    @Override
+    public POIXMLDocumentPart getPart() {
+        if (part != null) {
+            return part.getPart();
+        }
+        return null;
+    }
+
+    @Override
+    public BodyType getPartType() {
+        return part.getPartType();
+    }
+
+    @Override
     public List<IBodyElement> getBodyElements() {
         return Collections.unmodifiableList(bodyElements);
     }
 
+    @Override
     public List<XWPFParagraph> getParagraphs() {
         return Collections.unmodifiableList(paragraphs);
     }
 
+    @Override
     public List<XWPFTable> getTables() {
         return Collections.unmodifiableList(tables);
     }
 
+    @Override
     public List<XWPFSDTBlock> getSdtBlocks() {
         return Collections.unmodifiableList(contentControls);
     }
@@ -77,15 +94,12 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
 
     /**
      * verifies that cursor is on the right position
-     *
-     * @param cursor
      */
     private boolean isCursorInSdtContentBlock(XmlCursor cursor) {
-        XmlCursor verify = cursor.newCursor();
-        verify.toParent();
-        boolean result = (verify.getObject() == this.ctSdtContentBlock);
-        verify.dispose();
-        return result;
+        try (XmlCursor verify = cursor.newCursor()) {
+            verify.toParent();
+            return verify.getObject() == this.ctSdtContentBlock;
+        }
     }
 
     @Override
@@ -99,7 +113,7 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
             // move the cursor to the START token to the paragraph just created
             cursor.toParent();
             CTP p = (CTP) cursor.getObject();
-            XWPFParagraph newP = new XWPFParagraph(p, parent);
+            XWPFParagraph newP = new XWPFParagraph(p, this);
             XmlObject o = null;
             /*
              * move the cursor to the previous element until a) the next
@@ -127,8 +141,7 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
              * create a new cursor, that points to the START token of the just
              * inserted paragraph
              */
-            XmlCursor newParaPos = p.newCursor();
-            try {
+            try (XmlCursor newParaPos = p.newCursor()) {
                 /*
                  * Calculate the paragraphs index in the list of all body
                  * elements
@@ -145,8 +158,6 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
                 cursor.toCursor(newParaPos);
                 cursor.toEndToken();
                 return newP;
-            } finally {
-                newParaPos.dispose();
             }
         }
         return null;
@@ -154,7 +165,7 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
 
     @Override
     public XWPFParagraph createParagraph() {
-        XWPFParagraph p = new XWPFParagraph(ctSdtContentBlock.addNewP(), parent);
+        XWPFParagraph p = new XWPFParagraph(ctSdtContentBlock.addNewP(), this);
         bodyElements.add(p);
         paragraphs.add(p);
         return p;
@@ -162,12 +173,13 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
 
     @Override
     public XWPFTable createTable() {
-        XWPFTable table = new XWPFTable(ctSdtContentBlock.addNewTbl(), parent);
+        XWPFTable table = new XWPFTable(ctSdtContentBlock.addNewTbl(), this);
         bodyElements.add(table);
         tables.add(table);
         return table;
     }
 
+    @Override
     public void setSDTBlock(int pos, XWPFSDTBlock sdt) {
         contentControls.set(pos, sdt);
         ctSdtContentBlock.setSdtArray(pos, sdt.getCtSdtBlock());
@@ -175,7 +187,7 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
 
     @Override
     public XWPFSDTBlock createSdt() {
-        XWPFSDTBlock sdt = new XWPFSDTBlock(ctSdtContentBlock.addNewSdt(), parent);
+        XWPFSDTBlock sdt = new XWPFSDTBlock(ctSdtContentBlock.addNewSdt(), this);
         bodyElements.add(sdt);
         contentControls.add(sdt);
         return sdt;
@@ -192,6 +204,32 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
     }
 
     @Override
+    public XWPFSDTBlock getSdtBlock(CTSdtBlock ctSdtBlock) {
+        for (int i = 0; i < contentControls.size(); i++) {
+            if (getSdtBlocks().get(i).getCtSdtBlock() == ctSdtBlock) {
+                return getSdtBlocks().get(i);
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public XWPFParagraph getParagraphArray(int pos) {
+        if (pos >= 0 && pos < paragraphs.size()) {
+            return paragraphs.get(pos);
+        }
+        return null;
+    }
+
+    @Override
+    public XWPFTable getTableArray(int pos) {
+        if (pos >= 0 && pos < tables.size()) {
+            return tables.get(pos);
+        }
+        return null;
+    }
+
+    @Override
     public XWPFTable insertNewTbl(XmlCursor cursor) {
         if (isCursorInSdtContentBlock(cursor)) {
             String uri = CTTbl.type.getName().getNamespaceURI();
@@ -199,7 +237,7 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
             cursor.beginElement(localPart, uri);
             cursor.toParent();
             CTTbl t = (CTTbl) cursor.getObject();
-            XWPFTable newT = new XWPFTable(t, parent);
+            XWPFTable newT = new XWPFTable(t, this);
             XmlObject o = null;
             while (!(o instanceof CTTbl) && (cursor.toPrevSibling())) {
                 o = cursor.getObject();
@@ -211,8 +249,7 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
                 tables.add(pos, newT);
             }
             int i = 0;
-            XmlCursor tableCursor = t.newCursor();
-            try {
+            try (XmlCursor tableCursor = t.newCursor()) {
                 cursor.toCursor(tableCursor);
                 while (cursor.toPrevSibling()) {
                     o = cursor.getObject();
@@ -224,40 +261,146 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
                 cursor.toCursor(tableCursor);
                 cursor.toEndToken();
                 return newT;
-            } finally {
-                tableCursor.dispose();
             }
         }
         return null;
     }
 
     @Override
+    public XWPFSDTBlock insertNewSdtBlock(XmlCursor cursor) {
+        if (isCursorInSdtContentBlock(cursor)) {
+            String uri = CTSdtBlock.type.getName().getNamespaceURI();
+            String localPart = "sdt";
+            cursor.beginElement(localPart, uri);
+            cursor.toParent();
+            CTSdtBlock sdt = (CTSdtBlock) cursor.getObject();
+            XWPFSDTBlock newSdtBlock = new XWPFSDTBlock(sdt, this);
+            XmlObject o = null;
+            while (!(o instanceof CTSdtBlock) && (cursor.toPrevSibling())) {
+                o = cursor.getObject();
+            }
+            if (!(o instanceof CTSdtBlock)) {
+                contentControls.add(0, newSdtBlock);
+            } else {
+                int pos = contentControls.indexOf(getSdtBlock((CTSdtBlock) o)) + 1;
+                contentControls.add(pos, newSdtBlock);
+            }
+            int i = 0;
+            try (XmlCursor sdtCursor = sdt.newCursor()) {
+                cursor.toCursor(sdtCursor);
+                while (cursor.toPrevSibling()) {
+                    o = cursor.getObject();
+                    if (o instanceof CTP || o instanceof CTTbl || o instanceof CTSdtBlock) {
+                        i++;
+                    }
+                }
+                bodyElements.add(i, newSdtBlock);
+                cursor.toCursor(sdtCursor);
+                cursor.toEndToken();
+                return newSdtBlock;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public void insertTable(int pos, XWPFTable table) {
+        bodyElements.add(pos, table);
+        int i = 0;
+        for (CTTbl tbl : ctSdtContentBlock.getTblArray()) {
+            if (tbl == table.getCTTbl()) {
+                break;
+            }
+            i++;
+        }
+        tables.add(i, table);
+    }
+
+    @Override
+    public XWPFTableCell getTableCell(CTTc cell) {
+        XmlObject o;
+        CTRow row;
+        try (XmlCursor cursor = cell.newCursor()) {
+            cursor.toParent();
+            o = cursor.getObject();
+            if (!(o instanceof CTRow)) {
+                return null;
+            }
+            row = (CTRow) o;
+            cursor.toParent();
+            o = cursor.getObject();
+        }
+        if (!(o instanceof CTTbl)) {
+            return null;
+        }
+        CTTbl tbl = (CTTbl) o;
+        XWPFTable table = getTable(tbl);
+        if (table == null) {
+            return null;
+        }
+        XWPFTableRow tableRow = table.getRow(row);
+        if (tableRow == null) {
+            return null;
+        }
+        return tableRow.getTableCell(cell);
+    }
+
+    @Override
+    public boolean removeBodyElement(int pos) {
+        if (pos >= 0 && pos < bodyElements.size()) {
+            BodyElementType type = bodyElements.get(pos).getElementType();
+            if (type == BodyElementType.TABLE) {
+                int tablePos = getTablePos(pos);
+                tables.remove(tablePos);
+                ctSdtContentBlock.removeTbl(tablePos);
+            }
+            if (type == BodyElementType.PARAGRAPH) {
+                int paraPos = getParagraphPos(pos);
+                paragraphs.remove(paraPos);
+                ctSdtContentBlock.removeP(paraPos);
+            }
+            if (type == BodyElementType.CONTENTCONTROL) {
+                int sdtPos = getSDTPos(pos);
+                contentControls.remove(sdtPos);
+                ctSdtContentBlock.removeSdt(sdtPos);
+            }
+            bodyElements.remove(pos);
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public XWPFDocument getXWPFDocument() {
+        return part.getDocument();
+    }
+
     public IBodyElement cloneExistingIBodyElement(IBodyElement elem) {
         if (elem instanceof XWPFParagraph) {
             CTP ctp = ctSdtContentBlock.addNewP();
             ctp.set(((XWPFParagraph) elem).getCTP());
-            XWPFParagraph p = new XWPFParagraph(ctp, parent);
+            XWPFParagraph p = new XWPFParagraph(ctp, this);
             paragraphs.add(p);
             bodyElements.add(p);
             return p;
         } else if (elem instanceof XWPFTable) {
             if (((XWPFTable) elem).fetchTblText().toString().equals("")) {
                 CTP ctp = ctSdtContentBlock.addNewP();
-                XWPFParagraph p = new XWPFParagraph(ctp, parent);
+                XWPFParagraph p = new XWPFParagraph(ctp, this);
                 paragraphs.add(p);
                 bodyElements.add(p);
                 return p;
             }
             CTTbl ctTbl = ctSdtContentBlock.addNewTbl();
             ctTbl.set(((XWPFTable) elem).getCTTbl());
-            XWPFTable tbl = new XWPFTable(ctTbl, parent);
+            XWPFTable tbl = new XWPFTable(ctTbl, this);
             tables.add(tbl);
             bodyElements.add(tbl);
             return tbl;
         } else if (elem instanceof XWPFSDTBlock) {
             CTSdtBlock ctSdtBlock = ctSdtContentBlock.addNewSdt();
             ctSdtBlock.set(((XWPFSDTBlock) elem).getCtSdtBlock());
-            XWPFSDTBlock sdtBlock = new XWPFSDTBlock(ctSdtBlock, parent);
+            XWPFSDTBlock sdtBlock = new XWPFSDTBlock(ctSdtBlock, this);
             contentControls.add(sdtBlock);
             bodyElements.add(sdtBlock);
             return sdtBlock;
@@ -332,31 +475,6 @@ public class XWPFSDTContentBlock implements ISDTContent, ISDTContentBlock {
      */
     public int getTablePos(int pos) {
         return getBodyElementSpecificPos(pos, tables);
-    }
-
-    @Override
-    public boolean removeIBodyElement(int pos) {
-        if (pos >= 0 && pos < bodyElements.size()) {
-            BodyElementType type = bodyElements.get(pos).getElementType();
-            if (type == BodyElementType.TABLE) {
-                int tablePos = getTablePos(pos);
-                tables.remove(tablePos);
-                ctSdtContentBlock.removeTbl(tablePos);
-            }
-            if (type == BodyElementType.PARAGRAPH) {
-                int paraPos = getParagraphPos(pos);
-                paragraphs.remove(paraPos);
-                ctSdtContentBlock.removeP(paraPos);
-            }
-            if (type == BodyElementType.CONTENTCONTROL) {
-                int sdtPos = getSDTPos(pos);
-                contentControls.remove(sdtPos);
-                ctSdtContentBlock.removeSdt(sdtPos);
-            }
-            bodyElements.remove(pos);
-            return true;
-        }
-        return false;
     }
 
     @Override

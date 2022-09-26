@@ -141,7 +141,7 @@ subprojects {
     apply plugin: 'de.thetaphi.forbiddenapis'
     apply plugin: 'com.github.spotbugs'
 
-    version = '5.2.3-AIRSLATE-13'
+    version = '5.2.3-AIRSLATE-24'
     ext {
         bouncyCastleVersion = '1.70'
         commonsCodecVersion = '1.15'
@@ -617,10 +617,6 @@ rat {
         // ignore svn conflict artifacts
         "**/module-info.*",
         // airslate fork files
-        "poi-ooxml/src/main/java/org/apache/poi/xwpf/usermodel/ISDTContentBlock.java",
-        "poi-ooxml/src/main/java/org/apache/poi/xwpf/usermodel/ISDTContentRun.java",
-        "poi-ooxml/src/main/java/org/apache/poi/xwpf/usermodel/ISDTContentsBlock.java",
-        "poi-ooxml/src/main/java/org/apache/poi/xwpf/usermodel/ISDTContentsRun.java",
         "poi-ooxml/src/main/java/org/apache/poi/xwpf/usermodel/XWPFSDTBlock.java",
         "poi-ooxml/src/main/java/org/apache/poi/xwpf/usermodel/XWPFSDTContentBlock.java",
         "poi-ooxml/src/main/java/org/apache/poi/xwpf/usermodel/XWPFSDTContentRun.java",

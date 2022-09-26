@@ -92,19 +92,4 @@ public class XWPFEndnote extends XWPFAbstractFootnoteEndnote {
         }
 
     }
-
-    @Override
-    public List<XWPFSDTBlock> getSdtBlocks() {
-        return null;
-    }
-
-    @Override
-    public XWPFSDTBlock getSdtBlock(CTSdtBlock ctSdtBlock) {
-        return null;
-    }
-
-    @Override
-    public XWPFSDTBlock insertNewSdtBlock(XmlCursor cursor) {
-        return null;
-    }
 }

@@ -769,8 +769,6 @@ public class XWPFDocument extends POIXMLDocument implements Document, IBody {
     /**
      * Find the comments for code in the method:
      * {@link org.apache.poi.xwpf.usermodel.XWPFDocument#insertNewParagraph(org.apache.xmlbeans.XmlCursor)}
-     * @param cursor
-     * @return
      */
     @Override
     public XWPFSDTBlock insertNewSdtBlock(XmlCursor cursor) {
@@ -792,8 +790,7 @@ public class XWPFDocument extends POIXMLDocument implements Document, IBody {
                 contentControls.add(pos, newSdtBlock);
             }
             int i = 0;
-            XmlCursor sdtCursor = sdt.newCursor();
-            try {
+            try (XmlCursor sdtCursor = sdt.newCursor()) {
                 cursor.toCursor(sdtCursor);
                 while (cursor.toPrevSibling()) {
                     o = cursor.getObject();
@@ -805,9 +802,6 @@ public class XWPFDocument extends POIXMLDocument implements Document, IBody {
                 cursor.toCursor(sdtCursor);
                 cursor.toEndToken();
                 return newSdtBlock;
-            } finally {
-                sdtCursor.dispose();
-                cursor.dispose();
             }
         }
         return null;
@@ -1759,7 +1753,6 @@ public class XWPFDocument extends POIXMLDocument implements Document, IBody {
     /**
      * get an SDT Block by its CtSdtBlock-Object
      *
-     * @param ctSdtBlock
      * @return a table by its CTTbl-Object or null
      * @see org.apache.poi.xwpf.usermodel.IBody#getTable(org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTbl)
      */

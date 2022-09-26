@@ -33,9 +33,6 @@ public class XWPFSDTPr {
         return (sdtPr != null && sdtPr.isSetAlias()) ? sdtPr.getAlias().getVal() : null;
     }
 
-    /**
-     * @param title
-     */
     public void setTitle(String title) {
         if (sdtPr != null && !sdtPr.isSetAlias()) {
             CTString cttag = sdtPr.addNewAlias();
@@ -53,9 +50,6 @@ public class XWPFSDTPr {
         return (sdtPr != null && sdtPr.isSetTag()) ? sdtPr.getTag().getVal() : null;
     }
 
-    /**
-     * @param tag
-     */
     public void setTag(String tag) {
         if (sdtPr != null && !sdtPr.isSetTag()) {
             CTString cttag = CTString.Factory.newInstance();

@@ -143,8 +143,7 @@ public abstract class XWPFHeaderFooter extends POIXMLDocumentPart implements IBo
                 sdtBlocks.add(pos, newSdtBlock);
             }
             int i = 0;
-            XmlCursor sdtCursor = sdt.newCursor();
-            try {
+            try (XmlCursor sdtCursor = sdt.newCursor()) {
                 cursor.toCursor(sdtCursor);
                 while (cursor.toPrevSibling()) {
                     o = cursor.getObject();
@@ -156,9 +155,6 @@ public abstract class XWPFHeaderFooter extends POIXMLDocumentPart implements IBo
                 cursor.toCursor(sdtCursor);
                 cursor.toEndToken();
                 return newSdtBlock;
-            } finally {
-                sdtCursor.dispose();
-                cursor.dispose();
             }
         }
         return null;
@@ -171,15 +167,12 @@ public abstract class XWPFHeaderFooter extends POIXMLDocumentPart implements IBo
 
     /**
      * verifies that cursor is on the right position
-     *
-     * @param cursor
      */
     private boolean isCursorInBody(XmlCursor cursor) {
-        XmlCursor verify = cursor.newCursor();
-        verify.toParent();
-        boolean result = (verify.getObject() == this.headerFooter);
-        verify.dispose();
-        return result;
+        try (XmlCursor verify = cursor.newCursor()) {
+            verify.toParent();
+            return verify.getObject() == this.headerFooter;
+        }
     }
 
 
@@ -411,6 +404,22 @@ public abstract class XWPFHeaderFooter extends POIXMLDocumentPart implements IBo
         paragraphs.add(paragraph);
         bodyElements.add(paragraph);
         return paragraph;
+    }
+
+    @Override
+    public XWPFTable createTable() {
+        XWPFTable table = new XWPFTable(headerFooter.addNewTbl(), this);
+        bodyElements.add(table);
+        tables.add(table);
+        return table;
+    }
+
+    @Override
+    public XWPFSDTBlock createSdt() {
+        XWPFSDTBlock sdt = new XWPFSDTBlock(headerFooter.addNewSdt(), this);
+        bodyElements.add(sdt);
+        sdtBlocks.add(sdt);
+        return sdt;
     }
 
     /**
@@ -703,9 +712,9 @@ public abstract class XWPFHeaderFooter extends POIXMLDocumentPart implements IBo
     public void removeSdtBlock(XWPFSDTBlock sdt) {
         if (sdtBlocks.contains(sdt)) {
             CTSdtBlock ctSdtBlock = sdt.getCtSdtBlock();
-            XmlCursor c = ctSdtBlock.newCursor();
-            c.removeXml();
-            c.dispose();
+            try (XmlCursor c = ctSdtBlock.newCursor()) {
+                c.removeXml();
+            }
             sdtBlocks.remove(ctSdtBlock);
             bodyElements.remove(ctSdtBlock);
         }
