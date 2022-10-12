@@ -17,15 +17,6 @@
 
 package org.apache.poi.xwpf.usermodel;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
@@ -49,6 +40,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openxmlformats.schemas.officeDocument.x2006.extendedProperties.CTProperties;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTP;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 public final class TestXWPFDocument {
 
@@ -478,6 +471,13 @@ public final class TestXWPFDocument {
                 XWPFWordExtractor ext2 = new XWPFWordExtractor(doc2)) {
                 assertEquals(origText, ext2.getText());
             }
+        }
+    }
+
+    @Test
+    void testZipBomb() throws Exception {
+        try (XWPFDocument docx = XWPFTestDataSamples.openSampleDocument("zip-bomb.docx")) {
+            assertTrue(true);
         }
     }
 }
