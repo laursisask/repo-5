@@ -36,8 +36,8 @@ import org.apache.poi.util.Internal;
 
 @Internal
 public class ZipArchiveThresholdInputStream extends FilterInputStream {
-    // don't alert for expanded sizes smaller than 100k
-    private static final long GRACE_ENTRY_SIZE = 100*1024L;
+    // don't alert for expanded sizes smaller than 100MiB
+    private static final long GRACE_ENTRY_SIZE = 100*1024*1024L;
 
     private static final String MAX_ENTRY_SIZE_MSG =
         "Zip bomb detected! The file would exceed the max size of the expanded data in the zip-file.\n" +
