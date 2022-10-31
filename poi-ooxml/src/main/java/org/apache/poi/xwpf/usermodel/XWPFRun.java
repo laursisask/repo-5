@@ -33,6 +33,7 @@ import javax.xml.namespace.QName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.common.usermodel.PictureType;
+import org.apache.poi.ooxml.POIXMLDocumentPart;
 import org.apache.poi.ooxml.POIXMLException;
 import org.apache.poi.ooxml.util.DocumentHelper;
 import org.apache.poi.ooxml.util.POIXMLUnits;
@@ -73,7 +74,7 @@ import org.xml.sax.SAXException;
 /**
  * XWPFRun object defines a region of text with a common set of properties
  */
-public class XWPFRun implements ISDTContentsRun, IRunElement, CharacterRun {
+public class XWPFRun implements IRunElement, CharacterRun {
     private static final Logger LOG = LogManager.getLogger(XWPFRun.class);
 
     private final CTR run;
@@ -276,9 +277,18 @@ public class XWPFRun implements ISDTContentsRun, IRunElement, CharacterRun {
      * @return The {@link XWPFDocument} instance, this run belongs to, or
      * {@code null} if parent structure (paragraph &gt; document) is not properly set.
      */
+    @Override
     public XWPFDocument getDocument() {
         if (parent != null) {
             return parent.getDocument();
+        }
+        return null;
+    }
+
+    @Override
+    public POIXMLDocumentPart getPart() {
+        if (parent != null) {
+            return parent.getPart();
         }
         return null;
     }

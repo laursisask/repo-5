@@ -51,7 +51,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
  * of paragraphs (and other block-level content) arranged in rows and columns.</p>
  */
 @SuppressWarnings("WeakerAccess")
-public class XWPFTable implements IBodyElement, ISDTContentsBlock {
+public class XWPFTable implements IBodyElement {
 
     public static final String REGEX_PERCENTAGE = "[0-9]+(\\.[0-9]+)?%";
     public static final String DEFAULT_PERCENTAGE_WIDTH = "100%";
@@ -1093,6 +1093,14 @@ public class XWPFTable implements IBodyElement, ISDTContentsBlock {
     @Override
     public IBody getBody() {
         return part;
+    }
+
+    @Override
+    public XWPFDocument getDocument() {
+        if (part != null) {
+            return part.getXWPFDocument();
+        }
+        return null;
     }
 
     /**

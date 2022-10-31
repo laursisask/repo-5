@@ -3,9 +3,7 @@ package org.apache.poi.xwpf.usermodel;
 import org.apache.poi.ooxml.POIXMLDocumentPart;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSdtRun;
 
-public class XWPFSDTRun extends XWPFAbstractSDT
-        implements IRunBody, IRunElement, ISDTContentsRun {
-
+public class XWPFSDTRun extends XWPFAbstractSDT implements IRunElement {
     private CTSdtRun ctSdtRun;
     private XWPFSDTContentRun contentRun;
     private IRunBody parent;
@@ -46,12 +44,18 @@ public class XWPFSDTRun extends XWPFAbstractSDT
 
     @Override
     public XWPFDocument getDocument() {
-        return parent.getDocument();
+        if (parent != null) {
+            return parent.getDocument();
+        }
+        return null;
     }
 
     @Override
     public POIXMLDocumentPart getPart() {
-        return parent.getPart();
+        if (parent != null) {
+            return parent.getPart();
+        }
+        return null;
     }
 
     public CTSdtRun getCtSdtRun() {

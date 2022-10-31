@@ -40,7 +40,7 @@ import org.apache.poi.ss.formula.functions.T;
  * actual text (possibly along with more styling) is held on
  * the child {@link XWPFRun}s.
  */
-public class XWPFParagraph implements IBodyElement, IRunBody, ISDTContentsBlock, Paragraph {
+public class XWPFParagraph implements IBodyElement, IRunBody, Paragraph {
     private final CTP paragraph;
     protected IBody part;
     /**
@@ -1767,9 +1767,6 @@ public class XWPFParagraph implements IBodyElement, IRunBody, ISDTContentsBlock,
 
     /**
      * removes a Run at the position pos in the paragraph
-     *
-     * @param pos
-     * @return true if the run was removed
      */
     public boolean removeRun(int pos) {
         if (pos >= 0 && pos < runs.size()) {
@@ -1907,10 +1904,8 @@ public class XWPFParagraph implements IBodyElement, IRunBody, ISDTContentsBlock,
 
     /**
      * Insert new sdt run by cursor. update iruns, sdt collections with correct run position
-     *
-     * @param cursor
-     * @return
      */
+    @Override
     public XWPFSDTRun insertNewSDTRunByCursor(XmlCursor cursor) {
         if (isCursorInParagraph(cursor)) {
             String uri = CTSdtRun.type.getName().getNamespaceURI();
@@ -1930,8 +1925,7 @@ public class XWPFParagraph implements IBodyElement, IRunBody, ISDTContentsBlock,
                 sdtRuns.add(pos, newSdtRun);
             }
             int i = 0;
-            XmlCursor sdtCursor = sdt.newCursor();
-            try {
+            try (XmlCursor sdtCursor = sdt.newCursor()) {
                 cursor.toCursor(sdtCursor);
                 while (cursor.toPrevSibling()) {
                     o = cursor.getObject();
@@ -1943,9 +1937,6 @@ public class XWPFParagraph implements IBodyElement, IRunBody, ISDTContentsBlock,
                 cursor.toCursor(sdtCursor);
                 cursor.toEndToken();
                 return newSdtRun;
-            } finally {
-                sdtCursor.dispose();
-                cursor.dispose();
             }
         }
         return null;
@@ -1962,18 +1953,16 @@ public class XWPFParagraph implements IBodyElement, IRunBody, ISDTContentsBlock,
 
     /**
      * Remove Sdt Run by its position in iruns collection
-     *
-     * @param irunPos
-     * @return true if element was removed
      */
+    @Override
     public boolean removeSdtRun(int irunPos) {
         if (irunPos >= 0 && irunPos < iruns.size()) {
             IRunElement sdtRun = iruns.get(irunPos);
 
             if (sdtRun instanceof XWPFSDTRun) {
-                XmlCursor c = ((XWPFSDTRun) sdtRun).getCtSdtRun().newCursor();
-                c.removeXml();
-                c.dispose();
+                try (XmlCursor c = ((XWPFSDTRun) sdtRun).getCtSdtRun().newCursor()) {
+                    c.removeXml();
+                }
                 sdtRuns.remove(sdtRun);
                 iruns.remove(sdtRun);
                 return true;
@@ -1984,9 +1973,6 @@ public class XWPFParagraph implements IBodyElement, IRunBody, ISDTContentsBlock,
 
     /**
      * Removes elements {@link XWPFSDTRun}, {@link XWPFRun} from iruns collection
-     *
-     * @param irunPos
-     * @return true if element was removed
      */
     public boolean removeIRunElement(int irunPos) {
         if (irunPos >= 0 && irunPos < iruns.size()) {

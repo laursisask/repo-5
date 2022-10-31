@@ -16,6 +16,7 @@
 ==================================================================== */
 package org.apache.poi.xwpf.usermodel;
 
+import org.apache.poi.ooxml.POIXMLDocumentPart;
 import org.apache.poi.wp.usermodel.CharacterRun;
 
 /**
@@ -26,4 +27,10 @@ import org.apache.poi.wp.usermodel.CharacterRun;
  * <p>
  * TODO Make this based on {@link CharacterRun}
  */
-public interface IRunElement {}
+public interface IRunElement {
+    IRunBody getParent();
+
+    XWPFDocument getDocument();
+
+    POIXMLDocumentPart getPart();
+}

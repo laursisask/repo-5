@@ -51,4 +51,6 @@ public abstract class XWPFAbstractSDT {
      * @return create Properties for SDT
      */
     public abstract ISDTContent createSdtContent();
+
+    public abstract XWPFDocument getDocument();
 }

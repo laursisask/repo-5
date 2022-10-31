@@ -25,6 +25,8 @@ import org.apache.poi.ooxml.POIXMLDocumentPart;
 public interface IBodyElement {
     IBody getBody();
 
+    XWPFDocument getDocument();
+
     POIXMLDocumentPart getPart();
 
     BodyType getPartType();

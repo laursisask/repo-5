@@ -366,8 +366,7 @@ public class XWPFTableCell implements IBody, ICell {
                 sdtBlocks.add(pos, newSdtBlock);
             }
             int i = 0;
-            XmlCursor sdtCursor = sdt.newCursor();
-            try {
+            try (XmlCursor sdtCursor = sdt.newCursor()) {
                 cursor.toCursor(sdtCursor);
                 while (cursor.toPrevSibling()) {
                     o = cursor.getObject();
@@ -379,9 +378,6 @@ public class XWPFTableCell implements IBody, ICell {
                 cursor.toCursor(sdtCursor);
                 cursor.toEndToken();
                 return newSdtBlock;
-            } finally {
-                sdtCursor.dispose();
-                cursor.dispose();
             }
         }
         return null;
@@ -450,6 +446,30 @@ public class XWPFTableCell implements IBody, ICell {
             return tables.get(pos);
         }
         return null;
+    }
+
+    @Override
+    public XWPFParagraph createParagraph() {
+        XWPFParagraph p = new XWPFParagraph(ctTc.addNewP(), this);
+        bodyElements.add(p);
+        paragraphs.add(p);
+        return p;
+    }
+
+    @Override
+    public XWPFTable createTable() {
+        XWPFTable table = new XWPFTable(ctTc.addNewTbl(), this);
+        bodyElements.add(table);
+        tables.add(table);
+        return table;
+    }
+
+    @Override
+    public XWPFSDTBlock createSdt() {
+        XWPFSDTBlock sdt = new XWPFSDTBlock(ctTc.addNewSdt(), this);
+        bodyElements.add(sdt);
+        sdtBlocks.add(sdt);
+        return sdt;
     }
 
     @Override

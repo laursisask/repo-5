@@ -74,7 +74,7 @@ public interface IBody {
     /**
      * Return the Sdt Blocks
      */
-    public List<XWPFSDTBlock> getSdtBlocks();
+    List<XWPFSDTBlock> getSdtBlocks();
 
     /**
      * Returns the paragraph corresponding to the provided {@link CTP}.
@@ -96,10 +96,8 @@ public interface IBody {
      * if there is a corresponding {@link XWPFSDTBlock} of the parameter ctSdtBlock in the
      * Content Controls list of this header, the method will return this sdt block
      * if there is no corresponding {@link XWPFSDTBlock} the method will return null
-     *
-     * @param ctSdtBlock
      */
-    public XWPFSDTBlock getSdtBlock(CTSdtBlock ctSdtBlock);
+    XWPFSDTBlock getSdtBlock(CTSdtBlock ctSdtBlock);
 
     /**
      * Returns the paragraph that of position pos
@@ -110,6 +108,14 @@ public interface IBody {
      * Returns the table at position pos
      */
     XWPFTable getTableArray(int pos);
+
+    XWPFParagraph createParagraph();
+
+    XWPFTable createTable();
+
+    XWPFSDTBlock createSdt();
+
+    void setSDTBlock(int pos, XWPFSDTBlock sdt);
 
     /**
      * inserts a new paragraph at position of the cursor
@@ -123,10 +129,8 @@ public interface IBody {
 
     /**
      * inserts a new SdtBlock at the cursor position.
-     *
-     * @param cursor
      */
-    public XWPFSDTBlock insertNewSdtBlock(XmlCursor cursor);
+    XWPFSDTBlock insertNewSdtBlock(XmlCursor cursor);
 
     /**
      * inserts a new Table at position pos
@@ -140,10 +144,8 @@ public interface IBody {
 
     /**
      * Remove element from BodyElements
-     * @param pos
-     * @return
      */
-    public boolean removeBodyElement(int pos);
+    boolean removeBodyElement(int pos);
 
     /**
      * Return XWPFDocument

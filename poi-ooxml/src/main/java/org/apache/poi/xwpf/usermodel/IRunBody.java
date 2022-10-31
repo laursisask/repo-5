@@ -18,6 +18,9 @@ package org.apache.poi.xwpf.usermodel;
 
 import org.apache.poi.ooxml.POIXMLDocumentPart;
 import org.apache.poi.wp.usermodel.Paragraph;
+import org.apache.xmlbeans.XmlCursor;
+
+import java.util.List;
 
 /**
  * Simple interface describing both {@link XWPFParagraph}
@@ -26,7 +29,37 @@ import org.apache.poi.wp.usermodel.Paragraph;
  * TODO Should this be based on / extend {@link Paragraph}?
  */
 public interface IRunBody {
-    public XWPFDocument getDocument();
+    XWPFDocument getDocument();
 
-    public POIXMLDocumentPart getPart();
+    POIXMLDocumentPart getPart();
+
+    List<IRunElement> getIRuns();
+
+    List<XWPFRun> getRuns();
+
+    List<XWPFSDTRun> getSDTRuns();
+
+    XWPFHyperlinkRun insertNewHyperlinkRun(int pos, String uri);
+
+    XWPFHyperlinkRun createHyperlinkRun(String uri);
+
+    XWPFFieldRun insertNewFieldRun(int pos);
+
+    XWPFFieldRun createFieldRun();
+
+    XWPFRun insertNewRun(int pos);
+
+    XWPFRun createRun();
+
+    XWPFSDTRun insertNewSDTRunByCursor(XmlCursor cursor);
+
+    void setSDTRun(int pos, XWPFSDTRun sdt);
+
+    XWPFSDTRun createSdtRun();
+
+    boolean removeIRunElement(int irunPos);
+
+    boolean removeRun(int pos);
+
+    boolean removeSdtRun(int irunPos);
 }
