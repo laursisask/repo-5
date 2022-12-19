@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.poi.util.StringUtil;
@@ -817,6 +818,22 @@ public final class TestXWPFParagraph {
             }
             String s = str.toString();
             assertTrue(StringUtil.isNotBlank(s), "Having text: \n" + s + "\nTrimmed length: " + s.trim().length());
+        }
+    }
+
+    @Test
+    public void testInsertSDTRun() throws IOException {
+        try (XWPFDocument document = new XWPFDocument()) {
+            XWPFParagraph paragraph = document.createParagraph();
+            XWPFRun run = paragraph.createRun();
+
+            XWPFSDTRun newSdt1 = paragraph.insertNewSdtRun(0);
+            XWPFSDTRun newSdt2 = paragraph.insertNewSdtRun(0);
+            XWPFSDTRun newSdt3 = paragraph.insertNewSdtRun(0);
+
+            assertEquals(4, paragraph.getIRuns().size());
+            assertEquals(Arrays.asList(newSdt3, newSdt2, newSdt1, run), paragraph.getIRuns());
+            assertEquals(Arrays.asList(newSdt3, newSdt2, newSdt1), paragraph.getSDTRuns());
         }
     }
 

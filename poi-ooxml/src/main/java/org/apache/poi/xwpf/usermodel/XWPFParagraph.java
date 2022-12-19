@@ -31,7 +31,6 @@ import org.apache.xmlbeans.XmlCursor;
 import org.apache.xmlbeans.XmlObject;
 import org.openxmlformats.schemas.officeDocument.x2006.sharedTypes.STOnOff1;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
-import org.apache.poi.ss.formula.functions.T;
 
 /**
  * A Paragraph within a Document, Table, Header etc.<p>
@@ -1490,8 +1489,27 @@ public class XWPFParagraph implements IBodyElement, IRunBody, Paragraph {
         paragraph.setSdtArray(pos, sdt.getCtSdtRun());
     }
 
+    public XWPFSDTRun insertNewSdtRun(int pos) {
+        if (pos == iruns.size()) {
+            return createSdtRun();
+        }
+
+        return insertNewProvidedIRun(pos, newCursor -> {
+            String uri = CTSdtRun.type.getName().getNamespaceURI();
+            String localPart = "sdt";
+            // creates a new run, cursor is positioned inside the new
+            // element
+            newCursor.beginElement(localPart, uri);
+            // move the cursor to the START token to the run just created
+            newCursor.toParent();
+            CTSdtRun r = (CTSdtRun) newCursor.getObject();
+
+            return new XWPFSDTRun(r, this);
+        });
+    }
+
     public XWPFSDTRun createSdtRun() {
-        XWPFSDTRun sdtRun = new XWPFSDTRun(paragraph.addNewSdt(), (IRunBody)this);
+        XWPFSDTRun sdtRun = new XWPFSDTRun(paragraph.addNewSdt(), this);
         sdtRuns.add(sdtRun);
         iruns.add(sdtRun);
         return sdtRun;
@@ -1542,10 +1560,10 @@ public class XWPFParagraph implements IBodyElement, IRunBody, Paragraph {
      * @return the inserted run or null if the given pos is out of bounds.
      */
     public XWPFRun insertNewRun(int pos) {
-        if (pos == runs.size()) {
+        if (pos == iruns.size()) {
             return createRun();
         }
-        return insertNewProvidedRun(pos, newCursor -> {
+        return insertNewProvidedIRun(pos, newCursor -> {
             String uri = CTR.type.getName().getNamespaceURI();
             String localPart = "r";
             // creates a new run, cursor is positioned inside the new
@@ -1567,10 +1585,10 @@ public class XWPFParagraph implements IBodyElement, IRunBody, Paragraph {
      * @return the inserted run or null if the given pos is out of bounds.
      */
     public XWPFHyperlinkRun insertNewHyperlinkRun(int pos, String uri) {
-        if (pos == runs.size()) {
+        if (pos == iruns.size()) {
             return createHyperlinkRun(uri);
         }
-        XWPFHyperlinkRun newRun = insertNewProvidedRun(pos, newCursor -> {
+        XWPFHyperlinkRun newRun = insertNewProvidedIRun(pos, newCursor -> {
             String namespaceURI = CTHyperlink.type.getName().getNamespaceURI();
             String localPart = "hyperlink";
             newCursor.beginElement(localPart, namespaceURI);
@@ -1598,10 +1616,10 @@ public class XWPFParagraph implements IBodyElement, IRunBody, Paragraph {
      * @return the inserted run or null if the given pos is out of bounds.
      */
     public XWPFFieldRun insertNewFieldRun(int pos) {
-        if (pos == runs.size()) {
+        if (pos == iruns.size()) {
             return createFieldRun();
         }
-        return insertNewProvidedRun(pos, newCursor -> {
+        return insertNewProvidedIRun(pos, newCursor -> {
             String uri = CTSimpleField.type.getName().getNamespaceURI();
             String localPart = "fldSimple";
             newCursor.beginElement(localPart, uri);
@@ -1620,11 +1638,13 @@ public class XWPFParagraph implements IBodyElement, IRunBody, Paragraph {
      * @param provider provide a new run at position of the given cursor.
      * @return the inserted run or null if the given pos is out of bounds.
      */
-    private <T extends XWPFRun> T insertNewProvidedRun(int pos, Function<XmlCursor, T> provider) {
-        if (pos >= 0 && pos < runs.size()) {
-            XWPFRun run = runs.get(pos);
-            CTR ctr = run.getCTR();
-            try (XmlCursor newCursor = ctr.newCursor()) {
+    private <T extends IRunElement> T insertNewProvidedIRun(int pos, Function<XmlCursor, T> provider) {
+        if (pos >= 0 && pos < iruns.size()) {
+            IRunElement iRun = iruns.get(pos);
+            XmlObject xmlObject = iRun instanceof XWPFSDTRun
+                    ? ((XWPFSDTRun) iRun).getCtSdtRun()
+                    : ((XWPFRun) iRun).getCTR();
+            try (XmlCursor newCursor = xmlObject.newCursor()) {
                 if (!isCursorInParagraph(newCursor)) {
                     // look up correct position for CTP -> XXX -> R array
                     newCursor.toParent();
@@ -1636,13 +1656,28 @@ public class XWPFParagraph implements IBodyElement, IRunBody, Paragraph {
                     // To update the iruns, find where we're going
                     // in the normal runs, and go in there
                     int iPos = iruns.size();
-                    int oldAt = iruns.indexOf(run);
+                    int oldAt = iruns.indexOf(iRun);
                     if (oldAt != -1) {
                         iPos = oldAt;
                     }
                     iruns.add(iPos, newRun);
                     // Runs itself is easy to update
-                    runs.add(pos, newRun);
+                    if (newRun instanceof XWPFRun) {
+                        int runPos = runs.size();
+                        int oldRunAt = runs.indexOf(iRun);
+                        if (oldRunAt != -1) {
+                            runPos = oldRunAt;
+                        }
+                        runs.add(runPos, (XWPFRun) newRun);
+                    } else if (newRun instanceof XWPFSDTRun) {
+                        int sdtPos = sdtRuns.size();
+                        int oldRunAt = sdtRuns.indexOf(iRun);
+                        if (oldRunAt != -1) {
+                            sdtPos = oldRunAt;
+                        }
+                        sdtRuns.add(sdtPos, (XWPFSDTRun) newRun);
+                    }
+
                     return newRun;
                 }
             }
@@ -1902,47 +1937,7 @@ public class XWPFParagraph implements IBodyElement, IRunBody, Paragraph {
         }
     }
 
-    /**
-     * Insert new sdt run by cursor. update iruns, sdt collections with correct run position
-     */
-    @Override
-    public XWPFSDTRun insertNewSDTRunByCursor(XmlCursor cursor) {
-        if (isCursorInParagraph(cursor)) {
-            String uri = CTSdtRun.type.getName().getNamespaceURI();
-            String localPart = "sdt";
-            cursor.beginElement(localPart, uri);
-            cursor.toParent();
-            CTSdtRun sdt = (CTSdtRun) cursor.getObject();
-            XWPFSDTRun newSdtRun = new XWPFSDTRun(sdt, this);
-            XmlObject o = null;
-            while (!(o instanceof CTSdtRun) && (cursor.toPrevSibling())) {
-                o = cursor.getObject();
-            }
-            if (!(o instanceof CTSdtRun)) {
-                sdtRuns.add(0, newSdtRun);
-            } else {
-                int pos = sdtRuns.indexOf(getSDTRun((CTSdtRun) o)) + 1;
-                sdtRuns.add(pos, newSdtRun);
-            }
-            int i = 0;
-            try (XmlCursor sdtCursor = sdt.newCursor()) {
-                cursor.toCursor(sdtCursor);
-                while (cursor.toPrevSibling()) {
-                    o = cursor.getObject();
-                    if (o instanceof CTR || o instanceof CTSdtRun || o instanceof CTHyperlink || o instanceof CTSimpleField) {
-                        i++;
-                    }
-                }
-                iruns.add(i, newSdtRun);
-                cursor.toCursor(sdtCursor);
-                cursor.toEndToken();
-                return newSdtRun;
-            }
-        }
-        return null;
-    }
-
-    public XWPFSDTRun getSDTRun(CTSdtRun ctSdtRun) {
+    private XWPFSDTRun getSDTRun(CTSdtRun ctSdtRun) {
         for (int i = 0; i < sdtRuns.size(); i++) {
             if (getSDTRuns().get(i).getCtSdtRun() == ctSdtRun) {
                 return getSDTRuns().get(i);
