@@ -517,8 +517,16 @@ public class XWPFRun implements IRunElement, CharacterRun {
      * @return The underline, or null create is false and there is no underline.
      */
     private CTUnderline getCTUnderline(boolean create) {
-        CTRPr pr = getRunProperties(true);
-        return pr.sizeOfUArray() > 0 ? pr.getUArray(0) : (create ? pr.addNewU() : null);
+        CTRPr pr = getRunProperties(create);
+        if (pr != null) {
+            if (pr.sizeOfUArray() > 0) {
+                return pr.getUArray(0);
+            }
+            if (create) {
+                return pr.addNewU();
+            }
+        }
+        return null;
     }
 
     /**
@@ -580,9 +588,11 @@ public class XWPFRun implements IRunElement, CharacterRun {
      * @since 4.0.0
      */
     public String getUnderlineColor() {
-        CTUnderline underline = getCTUnderline(true);
-        assert(underline != null);
+        CTUnderline underline = getCTUnderline(false);
         String colorName = "auto";
+        if (underline == null) {
+            return colorName;
+        }
         Object rawValue = underline.getColor();
         if (rawValue != null) {
             if (rawValue instanceof String) {
@@ -1671,11 +1681,12 @@ public class XWPFRun implements IRunElement, CharacterRun {
         if (pr == null) {
             return STEm.NONE;
         }
-        CTEm emphasis = pr.sizeOfEmArray() > 0 ? pr.getEmArray(0) : pr.addNewEm();
-
-        STEm.Enum val = emphasis.getVal();
+        if (pr.sizeOfEmArray() == 0) {
+            return STEm.NONE;
+        }
+        STEm.Enum val = pr.getEmArray(0).getVal();
         if (val == null) {
-            val = STEm.NONE;
+            return STEm.NONE;
         }
         return val;
     }
