@@ -2,13 +2,13 @@ package org.apache.poi.xwpf.usermodel;
 
 import org.apache.poi.xwpf.XWPFTestDataSamples;
 import org.apache.xmlbeans.XmlCursor;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTR;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSdtRun;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STLock;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -116,6 +116,23 @@ public final class TestXWPFSDTRun {
         }
     }
 
+    @Test
+    public void testInsertSDTRun() throws IOException {
+        try (XWPFDocument document = new XWPFDocument()) {
+            XWPFSDTRun sdtRun = document.createParagraph().createSdtRun();
+            XWPFSDTContentRun sdtRunContent = sdtRun.createSdtContent();
+            XWPFRun run = sdtRunContent.createRun();
+
+            XWPFSDTRun newSdt1 = sdtRunContent.insertNewSdtRun(0);
+            XWPFSDTRun newSdt2 = sdtRunContent.insertNewSdtRun(0);
+            XWPFSDTRun newSdt3 = sdtRunContent.insertNewSdtRun(0);
+
+            assertEquals(4, sdtRunContent.getIRuns().size());
+            assertEquals(Arrays.asList(newSdt3, newSdt2, newSdt1, run), sdtRunContent.getIRuns());
+            assertEquals(Arrays.asList(newSdt3, newSdt2, newSdt1), sdtRunContent.getSDTRuns());
+        }
+    }
+
     /**
      * Insert Sdt Run between chosen Run in paragraph
      * Then copy the content of this Run to Sdt Run Content
@@ -133,16 +150,9 @@ public final class TestXWPFSDTRun {
             run.setFontSize(40);
             paragraph.createRun().setText("third ");
 
-            XWPFSDTRun sdtRunBefore;
-            try (XmlCursor cursorBefore = run.getCTR().newCursor()) {
-                sdtRunBefore = paragraph.insertNewSDTRunByCursor(cursorBefore);
-            }
+            XWPFSDTRun sdtRunBefore = paragraph.insertNewSdtRun(paragraph.getIRuns().indexOf(run));
 
-            try (XmlCursor cursorAfter = run.getCTR().newCursor()) {
-                cursorAfter.toEndToken();
-                cursorAfter.toNextToken();
-                paragraph.insertNewSDTRunByCursor(cursorAfter);
-            }
+            paragraph.insertNewSdtRun(paragraph.getIRuns().indexOf(run) + 1);
 
             try (XmlCursor cursor = paragraph.getCTP().newCursor()) {
                 cursor.toChild(1);

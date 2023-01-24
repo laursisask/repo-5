@@ -51,9 +51,10 @@ public interface IRunBody {
 
     XWPFRun createRun();
 
-    XWPFSDTRun insertNewSDTRunByCursor(XmlCursor cursor);
-
+    /** @deprecated */
     void setSDTRun(int pos, XWPFSDTRun sdt);
+
+    XWPFSDTRun insertNewSdtRun(int pos);
 
     XWPFSDTRun createSdtRun();
 

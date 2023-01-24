@@ -15,7 +15,7 @@ public class XWPFSDTContentRun implements ISDTContent, IRunBody {
     private CTSdtContentRun ctContentRun;
     private final List<XWPFRun> runs = new ArrayList<>();
     private final List<IRunElement> iruns = new ArrayList<>();
-    private final List<XWPFSDTRun> sdtRuns = new ArrayList<>();
+    private List<XWPFSDTRun> sdtRuns = new ArrayList<>();
 
     public XWPFSDTContentRun(CTSdtContentRun ctContentRun, IRunElement parent) {
         if (ctContentRun == null) {
@@ -44,10 +44,10 @@ public class XWPFSDTContentRun implements ISDTContent, IRunBody {
 
     @Override
     public XWPFHyperlinkRun insertNewHyperlinkRun(int pos, String uri) {
-        if (pos == runs.size()) {
+        if (pos == iruns.size()) {
             return createHyperlinkRun(uri);
         }
-        XWPFHyperlinkRun newRun = insertNewProvidedRun(pos, newCursor -> {
+        XWPFHyperlinkRun newRun = insertNewProvidedIRun(pos, newCursor -> {
             String namespaceURI = CTHyperlink.type.getName().getNamespaceURI();
             String localPart = "hyperlink";
             newCursor.beginElement(localPart, namespaceURI);
@@ -88,10 +88,10 @@ public class XWPFSDTContentRun implements ISDTContent, IRunBody {
 
     @Override
     public XWPFFieldRun insertNewFieldRun(int pos) {
-        if (pos == runs.size()) {
+        if (pos == iruns.size()) {
             return createFieldRun();
         }
-        return insertNewProvidedRun(pos, newCursor -> {
+        return insertNewProvidedIRun(pos, newCursor -> {
             String uri = CTSimpleField.type.getName().getNamespaceURI();
             String localPart = "fldSimple";
             newCursor.beginElement(localPart, uri);
@@ -113,10 +113,10 @@ public class XWPFSDTContentRun implements ISDTContent, IRunBody {
 
     @Override
     public XWPFRun insertNewRun(int pos) {
-        if (pos == runs.size()) {
+        if (pos == iruns.size()) {
             return createRun();
         }
-        return insertNewProvidedRun(pos, newCursor -> {
+        return insertNewProvidedIRun(pos, newCursor -> {
             String uri = CTR.type.getName().getNamespaceURI();
             String localPart = "r";
             // creates a new run, cursor is positioned inside the new
@@ -137,11 +137,13 @@ public class XWPFSDTContentRun implements ISDTContent, IRunBody {
      * @param provider provide a new run at position of the given cursor.
      * @return the inserted run or null if the given pos is out of bounds.
      */
-    private <T extends XWPFRun> T insertNewProvidedRun(int pos, Function<XmlCursor, T> provider) {
-        if (pos >= 0 && pos < runs.size()) {
-            XWPFRun run = runs.get(pos);
-            CTR ctr = run.getCTR();
-            try (XmlCursor newCursor = ctr.newCursor()) {
+    private <T extends IRunElement> T insertNewProvidedIRun(int pos, Function<XmlCursor, T> provider) {
+        if (pos >= 0 && pos < iruns.size()) {
+            IRunElement iRun = iruns.get(pos);
+            XmlObject xmlObject = iRun instanceof XWPFSDTRun
+                    ? ((XWPFSDTRun) iRun).getCtSdtRun()
+                    : ((XWPFRun) iRun).getCTR();
+            try (XmlCursor newCursor = xmlObject.newCursor()) {
                 if (!isCursorInSdtContent(newCursor)) {
                     // look up correct position for CTP -> XXX -> R array
                     newCursor.toParent();
@@ -153,13 +155,27 @@ public class XWPFSDTContentRun implements ISDTContent, IRunBody {
                     // To update the iruns, find where we're going
                     // in the normal runs, and go in there
                     int iPos = iruns.size();
-                    int oldAt = iruns.indexOf(run);
+                    int oldAt = iruns.indexOf(iRun);
                     if (oldAt != -1) {
                         iPos = oldAt;
                     }
                     iruns.add(iPos, newRun);
                     // Runs itself is easy to update
-                    runs.add(pos, newRun);
+                    if (newRun instanceof XWPFRun) {
+                        int runPos = runs.size();
+                        int oldRunAt = runs.indexOf(iRun);
+                        if (oldRunAt != -1) {
+                            runPos = oldRunAt;
+                        }
+                        runs.add(runPos, (XWPFRun) newRun);
+                    } else if (newRun instanceof XWPFSDTRun) {
+                        int sdtPos = sdtRuns.size();
+                        int oldRunAt = sdtRuns.indexOf(iRun);
+                        if (oldRunAt != -1) {
+                            sdtPos = oldRunAt;
+                        }
+                        sdtRuns.add(sdtPos, (XWPFSDTRun) newRun);
+                    }
                     return newRun;
                 }
             }
@@ -237,43 +253,6 @@ public class XWPFSDTContentRun implements ISDTContent, IRunBody {
         return xwpfRun;
     }
 
-    @Override
-    public XWPFSDTRun insertNewSDTRunByCursor(XmlCursor cursor) {
-        if (isCursorInSdtContent(cursor)) {
-            String uri = CTSdtRun.type.getName().getNamespaceURI();
-            String localPart = "sdt";
-            cursor.beginElement(localPart, uri);
-            cursor.toParent();
-            CTSdtRun sdt = (CTSdtRun) cursor.getObject();
-            XWPFSDTRun newSdtRun = new XWPFSDTRun(sdt, this);
-            XmlObject o = null;
-            while (!(o instanceof CTSdtRun) && (cursor.toPrevSibling())) {
-                o = cursor.getObject();
-            }
-            if (!(o instanceof CTSdtRun)) {
-                sdtRuns.add(0, newSdtRun);
-            } else {
-                int pos = sdtRuns.indexOf(getSDTRun((CTSdtRun) o)) + 1;
-                sdtRuns.add(pos, newSdtRun);
-            }
-            int i = 0;
-            try (XmlCursor sdtCursor = sdt.newCursor()) {
-                cursor.toCursor(sdtCursor);
-                while (cursor.toPrevSibling()) {
-                    o = cursor.getObject();
-                    if (o instanceof CTR || o instanceof CTSdtRun || o instanceof CTHyperlink || o instanceof CTSimpleField) {
-                        i++;
-                    }
-                }
-                iruns.add(i, newSdtRun);
-                cursor.toCursor(sdtCursor);
-                cursor.toEndToken();
-                return newSdtRun;
-            }
-        }
-        return null;
-    }
-
     private XWPFSDTRun getSDTRun(CTSdtRun ctSdtRun) {
         for (int i = 0; i < sdtRuns.size(); i++) {
             if (getSDTRuns().get(i).getCtSdtRun() == ctSdtRun) {
@@ -287,6 +266,25 @@ public class XWPFSDTContentRun implements ISDTContent, IRunBody {
     public void setSDTRun(int pos, XWPFSDTRun sdt) {
         sdtRuns.set(pos, sdt);
         ctContentRun.setSdtArray(pos, sdt.getCtSdtRun());
+    }
+
+    public XWPFSDTRun insertNewSdtRun(int pos) {
+        if (pos == iruns.size()) {
+            return createSdtRun();
+        }
+
+        return insertNewProvidedIRun(pos, newCursor -> {
+            String uri = CTSdtRun.type.getName().getNamespaceURI();
+            String localPart = "sdt";
+            // creates a new run, cursor is positioned inside the new
+            // element
+            newCursor.beginElement(localPart, uri);
+            // move the cursor to the START token to the run just created
+            newCursor.toParent();
+            CTSdtRun r = (CTSdtRun) newCursor.getObject();
+
+            return new XWPFSDTRun(r, this);
+        });
     }
 
     @Override
