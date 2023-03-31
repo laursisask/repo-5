@@ -32,3 +32,12 @@ jobs:
         password: ${{ secrets.OUTREACH_DOCKER_JSON }}
     steps:
       - run: /usr/local/bin/action
+      - name: Notify slack when action fails
+        if: failure()
+        env:
+          SLACK_BOT_TOKEN: ${{ secrets.SLACK_TOKEN }}
+        uses: voxmedia/github-action-slack-notify-build@v1
+        with:
+          channel: dt-notifications
+          status: FAILED
+          color: danger
