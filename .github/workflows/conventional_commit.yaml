@@ -7,6 +7,8 @@ on:
         required: true
       PAT_OUTREACH_CI:
         required: false
+      SLACK_TOKEN:
+        required: true
     inputs:
       image_tag:
         type: string
