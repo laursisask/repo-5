@@ -16,20 +16,6 @@
 ==================================================================== */
 package org.apache.poi.xwpf.usermodel;
 
-import static org.apache.poi.ooxml.POIXMLTypeLoader.DEFAULT_XML_OPTIONS;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import javax.xml.namespace.QName;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.common.usermodel.PictureType;
@@ -46,18 +32,7 @@ import org.apache.poi.wp.usermodel.CharacterRun;
 import org.apache.xmlbeans.*;
 import org.apache.xmlbeans.impl.values.XmlAnyTypeImpl;
 import org.openxmlformats.schemas.drawingml.x2006.chart.CTChart;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTBlip;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTBlipFillProperties;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTGraphicalObject;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTGraphicalObjectData;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTNonVisualDrawingProps;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTNonVisualPictureProperties;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTPoint2D;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTPositiveSize2D;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTPresetGeometry2D;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTShapeProperties;
-import org.openxmlformats.schemas.drawingml.x2006.main.CTTransform2D;
-import org.openxmlformats.schemas.drawingml.x2006.main.STShapeType;
+import org.openxmlformats.schemas.drawingml.x2006.main.*;
 import org.openxmlformats.schemas.drawingml.x2006.picture.CTPicture;
 import org.openxmlformats.schemas.drawingml.x2006.picture.CTPictureNonVisual;
 import org.openxmlformats.schemas.drawingml.x2006.wordprocessingDrawing.CTAnchor;
@@ -65,11 +40,22 @@ import org.openxmlformats.schemas.drawingml.x2006.wordprocessingDrawing.CTInline
 import org.openxmlformats.schemas.officeDocument.x2006.sharedTypes.STHexColorRGB;
 import org.openxmlformats.schemas.officeDocument.x2006.sharedTypes.STOnOff1;
 import org.openxmlformats.schemas.officeDocument.x2006.sharedTypes.STVerticalAlignRun;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTColor;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.*;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Text;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+
+import javax.xml.namespace.QName;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.StringReader;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.apache.poi.ooxml.POIXMLTypeLoader.DEFAULT_XML_OPTIONS;
 
 /**
  * XWPFRun object defines a region of text with a common set of properties
@@ -78,10 +64,8 @@ public class XWPFRun implements IRunElement, CharacterRun {
     private static final Logger LOG = LogManager.getLogger(XWPFRun.class);
 
     private final CTR run;
-    private final String pictureText;
     private final IRunBody parent;
-    private final List<XWPFPicture> pictures;
-    private final List<CTDrawing> graphics;
+    private List<IDrawing> iDrawings;
 
     /**
      * @param r the CTR bean which holds the run attributes
@@ -91,60 +75,42 @@ public class XWPFRun implements IRunElement, CharacterRun {
         this.run = r;
         this.parent = p;
 
-        /*
-         * reserve already occupied drawing ids, so reserving new ids later will
-         * not corrupt the document
-         */
-        for (CTDrawing ctDrawing : r.getDrawingArray()) {
-            for (CTAnchor anchor : ctDrawing.getAnchorArray()) {
-                if (anchor.getDocPr() != null) {
-                    getDocument().getDrawingIdManager().reserve(anchor.getDocPr().getId());
-                }
-            }
-            for (CTInline inline : ctDrawing.getInlineArray()) {
-                if (inline.getDocPr() != null) {
-                    getDocument().getDrawingIdManager().reserve(inline.getDocPr().getId());
-                }
-            }
-        }
+        replaceAlternateContentDrawings(run);
 
-        // Look for any text in any of our pictures or drawings
-        StringBuilder text = new StringBuilder();
-        List<XmlObject> pictTextObjs = new ArrayList<>();
-        pictTextObjs.addAll(Arrays.asList(r.getPictArray()));
-        pictTextObjs.addAll(Arrays.asList(r.getDrawingArray()));
-        pictTextObjs.addAll(selectAlternateContentDrawings(r));
-        for (XmlObject o : pictTextObjs) {
-            XmlObject[] ts = o.selectPath("declare namespace w='http://schemas.openxmlformats.org/wordprocessingml/2006/main' .//w:t");
-            for (XmlObject t : ts) {
-                NodeList kids = t.getDomNode().getChildNodes();
-                for (int n = 0; n < kids.getLength(); n++) {
-                    if (kids.item(n) instanceof Text) {
-                        if (text.length() > 0) {
-                            text.append("\n");
+        initDrawingsAndPicts();
+    }
+
+    public void initDrawingsAndPicts() {
+        iDrawings = new ArrayList<>();
+
+        try (XmlCursor cursor = run.newCursor()) {
+            cursor.selectPath("./*");
+            while (cursor.toNextSelection()) {
+                XmlObject child = cursor.getObject();
+                if (child instanceof CTDrawing) {
+                    /*
+                     * reserve already occupied drawing ids, so reserving new ids later will
+                     * not corrupt the document
+                     */
+                    CTDrawing ctDrawing = (CTDrawing) child;
+                    for (CTAnchor anchor : ctDrawing.getAnchorArray()) {
+                        if (anchor.getDocPr() != null) {
+                            getDocument().getDrawingIdManager().reserve(anchor.getDocPr().getId());
                         }
-                        text.append(kids.item(n).getNodeValue());
                     }
+                    for (CTInline inline : ctDrawing.getInlineArray()) {
+                        if (inline.getDocPr() != null) {
+                            getDocument().getDrawingIdManager().reserve(inline.getDocPr().getId());
+                        }
+                    }
+                    iDrawings.add(new XWPFDrawing(ctDrawing, this));
+                } else if (child instanceof org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPicture) {
+                    XWPFPict pict = new XWPFPict(
+                            (org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPicture) child,
+                            this
+                    );
+                    iDrawings.add(pict);
                 }
-            }
-        }
-        pictureText = text.toString();
-
-        // Do we have any embedded pictures?
-        // (They're a different CTPicture, under the drawingml namespace)
-        pictures = new ArrayList<>();
-        for (XmlObject o : pictTextObjs) {
-            for (CTPicture pict : getCTPictures(o)) {
-                XWPFPicture picture = new XWPFPicture(pict, this);
-                pictures.add(picture);
-            }
-        }
-
-        graphics = new ArrayList<>();
-        for (XmlObject o : pictTextObjs) {
-            CTDrawing ctDrawing = getGraphic(o);
-            if (ctDrawing != null) {
-                graphics.add(ctDrawing);
             }
         }
     }
@@ -164,23 +130,41 @@ public class XWPFRun implements IRunElement, CharacterRun {
      *      </mc:AlternateContent>
      * <w:r>
      */
-    private List<CTDrawing> selectAlternateContentDrawings(CTR ctr) {
-        List<CTDrawing> drawings = new ArrayList<>();
-        try {
-            try (XmlCursor cursor = ctr.newCursor()) {
-                cursor.selectPath("declare namespace w='http://schemas.openxmlformats.org/wordprocessingml/2006/main' .//*/w:drawing");
-                while (cursor.hasNextSelection()) {
-                    cursor.toNextSelection();
-                    XmlObject obj = cursor.getObject();
-                    CTDrawing drawing = CTDrawing.Factory.parse(obj.newInputStream());
-                    drawings.add(drawing);
+    private void replaceAlternateContentDrawings(CTR ctr) {
+        try (XmlCursor cursor = ctr.newCursor()) {
+            cursor.selectPath("./*");
+            while (cursor.toNextSelection()) {
+                XmlObject child = cursor.getObject();
+                String nodeName = child.getDomNode().getNodeName();
+                if (nodeName.equals("mc:AlternateContent") || nodeName.equals("AlternateContent")) {
+                    XmlObject[] drawings = child.selectPath(
+                            "declare namespace mc='http://schemas.openxmlformats.org/markup-compatibility/2006' "
+                                    + "declare namespace w='http://schemas.openxmlformats.org/wordprocessingml/2006/main' "
+                                    + ".//mc:Choice/w:drawing"
+                    );
+                    if (drawings.length != 1) {
+                        continue;
+                    }
+                    try {
+                        CTDrawing srcDrawing = CTDrawing.Factory.parse(drawings[0].xmlText());
+
+                        try (XmlCursor xmlCursor = child.newCursor()) {
+                            xmlCursor.beginElement("drawing", CTDrawing.type.getName().getNamespaceURI());
+                        }
+
+                        cursor.toPrevSibling();
+                        CTDrawing newDrawing = ((CTDrawing) cursor.getObject());
+                        newDrawing.set(srcDrawing);
+
+                        cursor.toNextSibling();
+                        cursor.removeXml();
+                    } catch (XmlException e) {
+                        LOG.error("Error on select run alternate content drawing", e);
+                        throw new POIXMLException(e);
+                    }
                 }
             }
-        } catch (XmlException | IOException e) {
-            LOG.error("Error on select run alternate content drawing", e);
-            throw new POIXMLException(e);
         }
-        return drawings;
     }
 
     /**
@@ -199,7 +183,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
     static void preserveSpaces(XmlString xs) {
         String text = xs.getStringValue();
         if (text != null && text.length() >= 1
-                && (Character.isWhitespace(text.charAt(0)) || Character.isWhitespace(text.charAt(text.length()-1)))) {
+                && (Character.isWhitespace(text.charAt(0)) || Character.isWhitespace(text.charAt(text.length() - 1)))) {
             try (XmlCursor c = xs.newCursor()) {
                 c.toNextToken();
                 c.insertAttributeWithValue(new QName("http://www.w3.org/XML/1998/namespace", "space"), "preserve");
@@ -225,21 +209,6 @@ public class XWPFRun implements IRunElement, CharacterRun {
         }
         return pics;
     }
-
-    private CTDrawing getGraphic(XmlObject o) {
-        // Check that <w:drawing> not contain picture
-        XmlObject[] picts = o.selectPath("declare namespace pic='" + CTPicture.type.getName().getNamespaceURI() + "' .//pic:pic");
-        if (picts.length == 0) {
-            try {
-                return CTDrawing.Factory.parse(o.toString(), DEFAULT_XML_OPTIONS);
-            } catch (XmlException e) {
-                throw new POIXMLException(e);
-            }
-        }
-
-        return null;
-    }
-
 
     /**
      * Get the currently used CTR object
@@ -405,7 +374,11 @@ public class XWPFRun implements IRunElement, CharacterRun {
      * Returns text embedded in pictures
      */
     public String getPictureText() {
-        return pictureText;
+        StringBuilder out = new StringBuilder();
+        for (IDrawing iDrawing : getIDrawings()) {
+            out.append(iDrawing.toString());
+        }
+        return out.toString();
     }
 
     /**
@@ -507,7 +480,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
      */
     public void setUnderline(UnderlinePatterns value) {
         CTUnderline underline = getCTUnderline(true);
-        assert(underline != null);
+        assert (underline != null);
         underline.setVal(STUnderline.Enum.forInt(value.getValue()));
     }
 
@@ -537,7 +510,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
      */
     public void setUnderlineColor(String color) {
         CTUnderline underline = getCTUnderline(true);
-        assert(underline != null);
+        assert (underline != null);
         SimpleValue svColor;
         if (color.equals("auto")) {
             STHexColorAuto hexColor = STHexColorAuto.Factory.newInstance();
@@ -559,7 +532,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
      */
     public void setUnderlineThemeColor(String themeColor) {
         CTUnderline underline = getCTUnderline(true);
-        assert(underline != null);
+        assert (underline != null);
         STThemeColor.Enum val = STThemeColor.Enum.forString(themeColor);
         if (val != null) {
             underline.setThemeColor(val);
@@ -596,9 +569,9 @@ public class XWPFRun implements IRunElement, CharacterRun {
         Object rawValue = underline.getColor();
         if (rawValue != null) {
             if (rawValue instanceof String) {
-                colorName = (String)rawValue;
+                colorName = (String) rawValue;
             } else {
-                byte[] rgbColor = (byte[])rawValue;
+                byte[] rgbColor = (byte[]) rawValue;
                 colorName = HexDump.toHex(rgbColor[0]) + HexDump.toHex(rgbColor[1]) + HexDump.toHex(rgbColor[2]);
             }
         }
@@ -776,7 +749,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
         if (pr == null || pr.sizeOfKernArray() == 0) {
             return 0;
         }
-        return (int)POIXMLUnits.parseLength(pr.getKernArray(0).xgetVal());
+        return (int) POIXMLUnits.parseLength(pr.getKernArray(0).xgetVal());
     }
 
     @Override
@@ -804,7 +777,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
         if (pr == null || pr.sizeOfSpacingArray() == 0) {
             return 0;
         }
-        return (int)Units.toDXA(POIXMLUnits.parseLength(pr.getSpacingArray(0).xgetVal()));
+        return (int) Units.toDXA(POIXMLUnits.parseLength(pr.getSpacingArray(0).xgetVal()));
     }
 
     @Override
@@ -948,8 +921,8 @@ public class XWPFRun implements IRunElement, CharacterRun {
     private BigDecimal getFontSizeAsBigDecimal(int scale) {
         CTRPr pr = getRunProperties(false);
         return (pr != null && pr.sizeOfSzArray() > 0)
-            ? BigDecimal.valueOf(Units.toPoints(POIXMLUnits.parseLength(pr.getSzArray(0).xgetVal()))).divide(BigDecimal.valueOf(4), scale, RoundingMode.HALF_UP)
-            : null;
+                ? BigDecimal.valueOf(Units.toPoints(POIXMLUnits.parseLength(pr.getSzArray(0).xgetVal()))).divide(BigDecimal.valueOf(4), scale, RoundingMode.HALF_UP)
+                : null;
     }
 
     /**
@@ -1005,7 +978,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
      */
     public int getTextPosition() {
         CTRPr pr = getRunProperties(false);
-        return (pr != null && pr.sizeOfPositionArray() > 0) ? (int)(Units.toPoints(POIXMLUnits.parseLength(pr.getPositionArray(0).xgetVal())) / 2.)
+        return (pr != null && pr.sizeOfPositionArray() > 0) ? (int) (Units.toPoints(POIXMLUnits.parseLength(pr.getPositionArray(0).xgetVal())) / 2.)
                 : -1;
     }
 
@@ -1129,6 +1102,34 @@ public class XWPFRun implements IRunElement, CharacterRun {
         //TODO
     }
 
+    public void addDrawing(CTDrawing ctDrawing) {
+        CTDrawing newCtDrawing = run.addNewDrawing();
+        newCtDrawing.set(ctDrawing);
+        XWPFDrawing drawing = new XWPFDrawing(newCtDrawing, this);
+        iDrawings.add(drawing);
+    }
+
+    public void addPict(org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPicture ctPicture) {
+        org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPicture newCtPicture = run.addNewPict();
+        newCtPicture.set(ctPicture);
+        XWPFPict pict = new XWPFPict(newCtPicture, this);
+        iDrawings.add(pict);
+    }
+
+    public XWPFDrawing createDrawing() {
+        CTDrawing ctDrawing = run.addNewDrawing();
+        XWPFDrawing drawing = new XWPFDrawing(ctDrawing, this);
+        iDrawings.add(drawing);
+        return drawing;
+    }
+
+    public XWPFPict createPict() {
+        org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPicture ctPicture = run.addNewPict();
+        XWPFPict pict = new XWPFPict(ctPicture, this);
+        iDrawings.add(pict);
+        return pict;
+    }
+
     /**
      * Adds a picture to the run. This method handles
      * attaching the picture data to the overall file.
@@ -1148,7 +1149,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
      * @see org.apache.poi.xwpf.usermodel.Document#PICTURE_TYPE_DIB
      * @see #addPicture(InputStream, PictureType, String, int, int)
      */
-    public XWPFPicture addPicture(InputStream pictureData, int pictureType, String filename, int width, int height)
+    public XWPFDrawing addPicture(InputStream pictureData, int pictureType, String filename, int width, int height)
             throws InvalidFormatException, IOException {
         return addPicture(pictureData, PictureType.findByOoxmlId(pictureType), filename, width, height);
     }
@@ -1165,7 +1166,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
      * @throws IOException            If reading the picture-data from the stream fails.
      * @since POI 5.2.3
      */
-    public XWPFPicture addPicture(InputStream pictureData, PictureType pictureType, String filename, int width, int height)
+    public XWPFDrawing addPicture(InputStream pictureData, PictureType pictureType, String filename, int width, int height)
             throws InvalidFormatException, IOException {
         if (pictureType == null) {
             throw new InvalidFormatException("pictureType is not supported");
@@ -1263,10 +1264,10 @@ public class XWPFRun implements IRunElement, CharacterRun {
             prstGeom.setPrst(STShapeType.RECT);
             prstGeom.addNewAvLst();
 
-            // Finish up
-            XWPFPicture xwpfPicture = new XWPFPicture(pic, this);
-            pictures.add(xwpfPicture);
-            return xwpfPicture;
+            XWPFDrawing xwpfDrawing = new XWPFDrawing(drawing, this);
+            iDrawings.add(xwpfDrawing);
+
+            return xwpfDrawing;
         } catch (XmlException | SAXException e) {
             throw new IllegalStateException(e);
         }
@@ -1315,18 +1316,8 @@ public class XWPFRun implements IRunElement, CharacterRun {
         }
     }
 
-
-    /**
-     * Returns the embedded pictures of the run. These
-     * are pictures which reference an external,
-     * embedded picture image such as a .png or .jpg
-     */
-    public List<XWPFPicture> getEmbeddedPictures() {
-        return pictures;
-    }
-
-    public List<CTDrawing> getEmbeddedGraphics() {
-        return graphics;
+    public List<IDrawing> getIDrawings() {
+        return iDrawings;
     }
 
     /**
@@ -1338,7 +1329,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
     public void setStyle(String styleId) {
         CTRPr pr = getCTR().getRPr();
         if (null == pr) {
-           pr = getCTR().addNewRPr();
+            pr = getCTR().addNewRPr();
         }
         CTString style = pr.sizeOfRStyleArray() > 0 ? pr.getRStyleArray(0) : pr.addNewRStyle();
         style.setVal(styleId);
@@ -1601,7 +1592,7 @@ public class XWPFRun implements IRunElement, CharacterRun {
             color = STHighlightColor.Factory.newInstance();
             color.setEnumValue(STHighlightColor.NONE);
         }
-        return (STHighlightColor.Enum)(color.getEnumValue());
+        return (STHighlightColor.Enum) (color.getEnumValue());
     }
 
     /**

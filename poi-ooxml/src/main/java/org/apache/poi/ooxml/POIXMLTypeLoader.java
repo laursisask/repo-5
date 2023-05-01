@@ -63,6 +63,7 @@ public class POIXMLTypeLoader {
         map.put("http://schemas.openxmlformats.org/presentationml/2006/main", "p");
         map.put("http://schemas.openxmlformats.org/wordprocessingml/2006/main", "w");
         map.put("http://schemas.microsoft.com/office/word/2006/wordml", "wne");
+        map.put("http://schemas.microsoft.com/office/word/2010/wordprocessingShape", "wps");
         map.put(MS_OFFICE_URN, "o");
         map.put(MS_EXCEL_URN, "x");
         map.put(MS_WORD_URN, "w10");

@@ -17,12 +17,6 @@
 
 package org.apache.poi.xwpf.usermodel;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.List;
@@ -33,8 +27,9 @@ import org.apache.poi.openxml4j.opc.PackageRelationship;
 import org.apache.poi.xssf.usermodel.XSSFRelation;
 import org.apache.poi.xwpf.XWPFTestDataSamples;
 import org.apache.poi.xwpf.model.XWPFHeaderFooterPolicy;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 class TestXWPFPictureData {
 
@@ -202,13 +197,28 @@ class TestXWPFPictureData {
             XWPFHeaderFooterPolicy policy = doc.getHeaderFooterPolicy();
             XWPFHeader header = policy.getDefaultHeader();
 
-            header.getParagraphs().stream()
-                .map(XWPFParagraph::getRuns)
-                .flatMap(List::stream)
-                .map(XWPFRun::getEmbeddedPictures)
-                .flatMap(List::stream)
-                .map(XWPFPicture::getPictureData)
-                .forEach(Assertions::assertNull);
+            for (XWPFParagraph xwpfParagraph : header.getParagraphs()) {
+                for (XWPFRun xwpfRun : xwpfParagraph.getRuns()) {
+                    for (IDrawing iDrawing : xwpfRun.getIDrawings()) {
+                        XWPFDrawing xwpfDrawing = (XWPFDrawing) iDrawing;
+                        assertInstanceOf(XWPFDrawing.class, iDrawing);
+                        assertEquals(1, xwpfDrawing.getDrawingContents().size());
+                        IDrawingContent drawingContent = xwpfDrawing.getDrawingContents().get(0);
+                        XWPFPicture picture = null;
+                        if (drawingContent instanceof XWPFAnchor) {
+                            XWPFAnchor xwpfAnchor = (XWPFAnchor) drawingContent;
+                            picture = xwpfAnchor.getGraphicalObject().getGraphicalObjectData().getPicture();
+                        } else if (drawingContent instanceof XWPFInline) {
+                            XWPFInline xwpfInline = (XWPFInline) drawingContent;
+                            picture = xwpfInline.getGraphicalObject().getGraphicalObjectData().getPicture();
+                        } else {
+                            fail();
+                        }
+                        XWPFPictureData pictureData = picture.getPictureData();
+                        assertNull(pictureData);
+                    }
+                }
+            }
         }
     }
 }

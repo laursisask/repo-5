@@ -32,6 +32,8 @@ import org.apache.poi.util.Units;
 import org.apache.poi.wp.usermodel.HeaderFooterType;
 import org.apache.poi.xwpf.XWPFTestDataSamples;
 import org.apache.poi.xwpf.model.XWPFHeaderFooterPolicy;
+import org.apache.xmlbeans.QNameSet;
+import org.apache.xmlbeans.XmlObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -426,16 +428,26 @@ class TestXWPFRun {
 
         for (XWPFParagraph p : header.getParagraphs()) {
             for (XWPFRun r : p.getRuns()) {
-                List<XWPFPicture> pictures = r.getEmbeddedPictures();
-
-                for (XWPFPicture pic : pictures) {
-                    assertNotNull(pic.getPictureData());
-                    assertEquals("DOZOR", pic.getDescription());
-                    assertEquals(5, pic.getPictureData().getPictureType());
-                    assertEquals(PictureType.JPEG, pic.getPictureData().getPictureTypeEnum());
+                List<IDrawing> drawings = r.getIDrawings();
+                for (IDrawing iDrawing : drawings) {
+                    assertInstanceOf(XWPFDrawing.class, iDrawing);
+                    XWPFDrawing drawing = (XWPFDrawing) iDrawing;
+                    {
+                        assertEquals(1, drawing.getDrawingContents().size());
+                        assertInstanceOf(XWPFInline.class, drawing.getDrawingContents().get(0));
+                        {
+                            XWPFInline inline = (XWPFInline) drawing.getDrawingContents().get(0);
+                            XWPFPicture picture = inline.getGraphicalObject().getGraphicalObjectData().getPicture();
+                            assertNotNull(picture);
+                            assertEquals("DOZOR", picture.getDescription());
+                            XWPFPictureData pictureData = picture.getPictureData();
+                            assertEquals(5, pictureData.getPictureType());
+                            assertEquals(PictureType.JPEG, pictureData.getPictureTypeEnum());
+                        }
+                    }
                 }
 
-                count += pictures.size();
+                count += drawings.size();
             }
         }
 
@@ -480,19 +492,19 @@ class TestXWPFRun {
         XWPFRun r = p.getRuns().get(0);
 
         assertEquals(0, doc.getAllPictures().size());
-        assertEquals(0, r.getEmbeddedPictures().size());
+        assertEquals(0, r.getIDrawings().size());
 
         r.addPicture(new ByteArrayInputStream(new byte[0]), Document.PICTURE_TYPE_JPEG, "test.jpg", 21, 32);
 
         assertEquals(1, doc.getAllPictures().size());
-        assertEquals(1, r.getEmbeddedPictures().size());
+        assertEquals(1, r.getIDrawings().size());
 
         XWPFDocument docBack = writeOutAndReadBack(doc);
         XWPFParagraph pBack = docBack.getParagraphArray(2);
         XWPFRun rBack = pBack.getRuns().get(0);
 
         assertEquals(1, docBack.getAllPictures().size());
-        assertEquals(1, rBack.getEmbeddedPictures().size());
+        assertEquals(1, rBack.getIDrawings().size());
         docBack.close();
         doc.close();
     }
@@ -508,23 +520,36 @@ class TestXWPFRun {
             XWPFRun r = p.createRun();
 
             assertEquals(0, hdr.getAllPictures().size());
-            assertEquals(0, r.getEmbeddedPictures().size());
+            assertEquals(0, r.getIDrawings().size());
 
             r.addPicture(new ByteArrayInputStream(new byte[0]), Document.PICTURE_TYPE_JPEG, "test.jpg", 21, 32);
 
             assertEquals(1, hdr.getAllPictures().size());
-            assertEquals(1, r.getEmbeddedPictures().size());
+            assertEquals(1, r.getIDrawings().size());
 
-            XWPFPicture pic = r.getEmbeddedPictures().get(0);
-            CTPicture ctPic = pic.getCTPicture();
-            CTBlipFillProperties ctBlipFill = ctPic.getBlipFill();
+            IDrawing iDrawing = r.getIDrawings().get(0);
+            assertInstanceOf(XWPFDrawing.class, iDrawing);
+            XWPFDrawing drawing = (XWPFDrawing) iDrawing;
+            assertEquals(1, drawing.getDrawingContents().size());
+            assertInstanceOf(XWPFInline.class, drawing.getDrawingContents().get(0));
+            {
+                XWPFInline inline = (XWPFInline) drawing.getDrawingContents().get(0);
+                XWPFPicture picture = inline.getGraphicalObject().getGraphicalObjectData().getPicture();
+                {
+                    CTPicture ctPicture = picture.getCTPicture();
+                    CTBlipFillProperties ctBlipFill = ctPicture.getBlipFill();
 
-            assertNotNull(ctBlipFill);
+                    assertNotNull(ctBlipFill);
 
-            CTBlip ctBlip = ctBlipFill.getBlip();
+                    CTBlip ctBlip = ctBlipFill.getBlip();
 
-            assertNotNull(ctBlip);
-            assertEquals("rId1", ctBlip.getEmbed());
+                    assertNotNull(ctBlip);
+                    assertEquals("rId1", ctBlip.getEmbed());
+                }
+
+                XWPFPictureData pictureData = picture.getPictureData();
+                assertNotNull(pictureData);
+            }
 
             try (XWPFDocument docBack = writeOutAndReadBack(doc)) {
                 XWPFHeader hdrBack = docBack.getHeaderArray(0);
@@ -532,7 +557,7 @@ class TestXWPFRun {
                 XWPFRun rBack = pBack.getRuns().get(0);
 
                 assertEquals(1, hdrBack.getAllPictures().size());
-                assertEquals(1, rBack.getEmbeddedPictures().size());
+                assertEquals(1, rBack.getIDrawings().size());
             }
         }
     }
@@ -560,8 +585,8 @@ class TestXWPFRun {
                 new ByteArrayInputStream(image), Document.PICTURE_TYPE_JPEG, "test.jpg", Units.toEMU(300), Units.toEMU(100));
 
             try (XWPFDocument docBack = writeOutAndReadBack(document)) {
-                List<XWPFPicture> pictures = docBack.getParagraphArray(0).getRuns().get(0).getEmbeddedPictures();
-                assertEquals(1, pictures.size());
+                List<IDrawing> drawings = docBack.getParagraphArray(0).getRuns().get(0).getIDrawings();
+                assertEquals(1, drawings.size());
             }
         }
     }
@@ -786,17 +811,25 @@ class TestXWPFRun {
             XWPFRun r = p.createRun();
 
             assertEquals(0, hdr.getAllPictures().size());
-            assertEquals(0, r.getEmbeddedPictures().size());
+            assertEquals(0, r.getIDrawings().size());
 
             r.addPicture(new ByteArrayInputStream(new byte[0]), Document.PICTURE_TYPE_JPEG, "test.jpg", 21, 32);
 
             assertEquals(1, hdr.getAllPictures().size());
-            assertEquals(1, r.getEmbeddedPictures().size());
+            assertEquals(1, r.getIDrawings().size());
 
-            XWPFPicture pic = r.getEmbeddedPictures().get(0);
+            IDrawing iDrawing = r.getIDrawings().get(0);
+            assertInstanceOf(XWPFDrawing.class, iDrawing);
+            XWPFDrawing drawing = (XWPFDrawing) iDrawing;
+            assertEquals(1, drawing.getDrawingContents().size());
+            assertInstanceOf(XWPFInline.class, drawing.getDrawingContents().get(0));
+            {
+                XWPFInline inline = (XWPFInline) drawing.getDrawingContents().get(0);
+                XWPFPicture picture = inline.getGraphicalObject().getGraphicalObjectData().getPicture();
 
-            assertEquals(pic.getWidth(), Units.toPoints(21), 0.0);
-            assertEquals(pic.getDepth(), Units.toPoints(32), 0.0);
+                assertEquals(picture.getWidth(), Units.toPoints(21), 0.0);
+                assertEquals(picture.getDepth(), Units.toPoints(32), 0.0);
+            }
         }
     }
 
@@ -833,8 +866,8 @@ class TestXWPFRun {
     }
 
     @Test
-    void testSelectAlternateContentPictureInDrawing() throws IOException {
-        try (XWPFDocument document = openSampleDocument("alternate-content-picture-in-drawing.docx")) {
+    void testReplaceDrawingInlineAlternateContentImage() throws IOException {
+        try (XWPFDocument document = openSampleDocument("drawing-inline-alternate-content-image.docx")) {
             assertEquals(1, document.getBodyElements().size());
             assertEquals(1, document.getParagraphs().size());
 
@@ -844,30 +877,39 @@ class TestXWPFRun {
 
             XWPFRun actualRun = paragraph.getRuns().get(0);
 
-            List<XWPFPicture> actualEmbeddedPictures = actualRun.getEmbeddedPictures();
-            assertEquals(2, actualEmbeddedPictures.size());
-            assertNotSame(actualEmbeddedPictures.get(0), actualEmbeddedPictures.get(1));
+            List<IDrawing> actualEmbeddedDrawings = actualRun.getIDrawings();
+            assertEquals(2, actualEmbeddedDrawings.size());
+            assertNotSame(actualEmbeddedDrawings.get(0), actualEmbeddedDrawings.get(1));
 
-            assertEquals(0, actualRun.getEmbeddedGraphics().size());
+            for (XmlObject object : actualRun.getCTR().selectChildren(QNameSet.ALL)) {
+                String nodeName = object.getDomNode().getNodeName();
+                if (!nodeName.equals("w:drawing") && !nodeName.equals("drawing")) {
+                    fail();
+                }
+            }
         }
     }
 
     @Test
-    void testSelectAlternateContentGraphic() throws IOException {
-        try (XWPFDocument document = openSampleDocument("alternate-content-graphic.docx")) {
+    void testReplaceDrawingAnchorAlternateContentTextBox() throws IOException {
+        try (XWPFDocument document = openSampleDocument("drawing-anchor-alternate-content-text-box.docx")) {
             assertEquals(1, document.getBodyElements().size());
             assertEquals(1, document.getParagraphs().size());
 
             XWPFParagraph paragraph = document.getParagraphs().get(0);
-            assertEquals(1, paragraph.getIRuns().size());
-            assertEquals(1, paragraph.getRuns().size());
+            assertEquals(2, paragraph.getIRuns().size());
+            assertEquals(2, paragraph.getRuns().size());
 
             XWPFRun actualRun = paragraph.getRuns().get(0);
 
-            assertEquals(0, actualRun.getEmbeddedPictures().size());
+            assertEquals(1, actualRun.getIDrawings().size());
 
-            List<CTDrawing> actualEmbeddedGraphics = actualRun.getEmbeddedGraphics();
-            assertEquals(1, actualEmbeddedGraphics.size());
+            for (XmlObject object : actualRun.getCTR().selectChildren(QNameSet.ALL)) {
+                String nodeName = object.getDomNode().getNodeName();
+                if (!nodeName.equals("w:drawing") && !nodeName.equals("drawing")) {
+                    fail();
+                }
+            }
         }
     }
 }

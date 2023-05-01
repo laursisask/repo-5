@@ -95,6 +95,8 @@ public class TestAllFiles {
         "poifs/protected_sha512.xlsx",
         "poifs/60320-protected.xlsx",
         "poifs/protected_sha512.xlsx",
+        "spreadsheet/poc-xmlbomb.xlsx",
+        "spreadsheet/poc-xmlbomb-empty.xlsx",
     };
 
     // cheap workaround of skipping the few problematic files
