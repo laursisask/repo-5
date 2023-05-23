@@ -70,6 +70,12 @@ public class XWPFTextBoxContent implements IBody {
 
     @Override
     public POIXMLDocumentPart getPart() {
+        if (parent instanceof XWPFShape) {
+            return ((XWPFShape) parent).getParent().getParent().getPart();
+        }
+        if (parent instanceof XWPFWordprocessingShape) {
+            return ((XWPFWordprocessingShape) parent).getParent().getParent().getParent().getParent().getParent().getPart();
+        }
         return null;
     }
 
