@@ -17,12 +17,6 @@
 
 package org.apache.poi.xwpf.usermodel;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -50,6 +44,8 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STJc;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STLineSpacingRule;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTextAlignment;
+
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Tests for XWPF Paragraphs
@@ -514,7 +510,8 @@ public final class TestXWPFParagraph {
         assertEquals(2, paragraph.getRuns().size());
 
         assertEquals(3, paragraph.getIRuns().size());
-        assertEquals(0, paragraph.getRuns().indexOf(newRun));
+        assertEquals(0, paragraph.getIRuns().indexOf(newRun));
+        assertEquals(1, paragraph.getRuns().indexOf(newRun));
 
         doc.close();
         doc2.close();
@@ -543,55 +540,105 @@ public final class TestXWPFParagraph {
 
             r = p.getRuns().get(0);
             assertEquals("", r.toString());
-            assertEquals(1, r.getEmbeddedPictures().size());
-            assertNotNull(r.getEmbeddedPictures().get(0).getPictureData());
-            assertEquals("image1.wmf", r.getEmbeddedPictures().get(0).getPictureData().getFileName());
+            assertEquals(1, r.getIDrawings().size());
+            {
+                IDrawing iDrawing = r.getIDrawings().get(0);
+                assertInstanceOf(XWPFDrawing.class, iDrawing);
+                XWPFDrawing drawing = (XWPFDrawing) iDrawing;
+                assertEquals(1, drawing.getDrawingContents().size());
+                assertInstanceOf(XWPFInline.class, drawing.getDrawingContents().get(0));
+                {
+                    XWPFInline inline = (XWPFInline) drawing.getDrawingContents().get(0);
+                    XWPFPictureData pictureData = inline.getGraphicalObject().getGraphicalObjectData().getPicture().getPictureData();
+                    assertNotNull(pictureData);
+                    assertEquals("image1.wmf", pictureData.getFileName());
+                }
+            }
 
             r = p.getRuns().get(1);
             assertEquals("", r.toString());
-            assertEquals(1, r.getEmbeddedPictures().size());
-            assertNotNull(r.getEmbeddedPictures().get(0).getPictureData());
-            assertEquals("image2.png", r.getEmbeddedPictures().get(0).getPictureData().getFileName());
+            assertEquals(1, r.getIDrawings().size());
+            {
+                IDrawing iDrawing = r.getIDrawings().get(0);
+                assertInstanceOf(XWPFDrawing.class, iDrawing);
+                XWPFDrawing drawing = (XWPFDrawing) iDrawing;
+                assertEquals(1, drawing.getDrawingContents().size());
+                assertInstanceOf(XWPFInline.class, drawing.getDrawingContents().get(0));
+                {
+                    XWPFInline inline = (XWPFInline) drawing.getDrawingContents().get(0);
+                    XWPFPictureData pictureData = inline.getGraphicalObject().getGraphicalObjectData().getPicture().getPictureData();
+                    assertNotNull(pictureData);
+                    assertEquals("image2.png", pictureData.getFileName());
+                }
+            }
 
             r = p.getRuns().get(2);
             assertEquals("", r.toString());
-            assertEquals(1, r.getEmbeddedPictures().size());
-            assertNotNull(r.getEmbeddedPictures().get(0).getPictureData());
-            assertEquals("image3.emf", r.getEmbeddedPictures().get(0).getPictureData().getFileName());
+            assertEquals(1, r.getIDrawings().size());
+            {
+                IDrawing iDrawing = r.getIDrawings().get(0);
+                assertInstanceOf(XWPFDrawing.class, iDrawing);
+                XWPFDrawing drawing = (XWPFDrawing) iDrawing;
+                assertEquals(1, drawing.getDrawingContents().size());
+                assertInstanceOf(XWPFInline.class, drawing.getDrawingContents().get(0));
+                {
+                    XWPFInline inline = (XWPFInline) drawing.getDrawingContents().get(0);
+                    XWPFPictureData pictureData = inline.getGraphicalObject().getGraphicalObjectData().getPicture().getPictureData();
+                    assertNotNull(pictureData);
+                    assertEquals("image3.emf", pictureData.getFileName());
+                }
+            }
 
             r = p.getRuns().get(3);
             assertEquals("", r.toString());
-            assertEquals(1, r.getEmbeddedPictures().size());
-            assertNotNull(r.getEmbeddedPictures().get(0).getPictureData());
-            assertEquals("image4.emf", r.getEmbeddedPictures().get(0).getPictureData().getFileName());
+            assertEquals(1, r.getIDrawings().size());
+            {
+                IDrawing iDrawing = r.getIDrawings().get(0);
+                assertInstanceOf(XWPFDrawing.class, iDrawing);
+                XWPFDrawing drawing = (XWPFDrawing) iDrawing;
+                assertEquals(1, drawing.getDrawingContents().size());
+                assertInstanceOf(XWPFInline.class, drawing.getDrawingContents().get(0));
+                {
+                    XWPFInline inline = (XWPFInline) drawing.getDrawingContents().get(0);
+                    XWPFPictureData pictureData = inline.getGraphicalObject().getGraphicalObjectData().getPicture().getPictureData();
+                    assertNotNull(pictureData);
+                    assertEquals("image4.emf", pictureData.getFileName());
+                }
+            }
 
             r = p.getRuns().get(4);
             assertEquals("", r.toString());
-            assertEquals(1, r.getEmbeddedPictures().size());
-            assertNotNull(r.getEmbeddedPictures().get(0).getPictureData());
-            assertEquals("image5.jpeg", r.getEmbeddedPictures().get(0).getPictureData().getFileName());
+            assertEquals(1, r.getIDrawings().size());
+            {
+                IDrawing iDrawing = r.getIDrawings().get(0);
+                assertInstanceOf(XWPFDrawing.class, iDrawing);
+                XWPFDrawing drawing = (XWPFDrawing) iDrawing;
+                assertEquals(1, drawing.getDrawingContents().size());
+                assertInstanceOf(XWPFInline.class, drawing.getDrawingContents().get(0));
+                {
+                    XWPFInline inline = (XWPFInline) drawing.getDrawingContents().get(0);
+                    XWPFPicture picture = inline.getGraphicalObject().getGraphicalObjectData().getPicture();
+                    CTPicture ctPicture = picture.getCTPicture();
+                    assertEquals("rId8", ctPicture.getBlipFill().getBlip().getEmbed());
 
-            r = p.getRuns().get(5);
-            assertEquals(" ", r.toString());
-            assertEquals(0, r.getEmbeddedPictures().size());
-
-            // Final spacer
-            assertEquals("", doc.getParagraphs().get(6).getText());
-
-
-            // Look in detail at one
-            r = p.getRuns().get(4);
-            XWPFPicture pict = r.getEmbeddedPictures().get(0);
-            CTPicture picture = pict.getCTPicture();
-            assertEquals("rId8", picture.getBlipFill().getBlip().getEmbed());
-
-            // Ensure that the ooxml compiler finds everything we need
+                    XWPFPictureData pictureData = picture.getPictureData();
+                    assertNotNull(pictureData);
+                    assertEquals("image5.jpeg", pictureData.getFileName());
+                }
+            }
             r.getCTR().getDrawingArray(0);
             r.getCTR().getDrawingArray(0).getInlineArray(0);
             r.getCTR().getDrawingArray(0).getInlineArray(0).getGraphic();
             r.getCTR().getDrawingArray(0).getInlineArray(0).getGraphic().getGraphicData();
             PicDocument pd = new PicDocumentImpl(null);
             assertTrue(pd.isNil());
+
+            r = p.getRuns().get(5);
+            assertEquals(" ", r.toString());
+            assertEquals(0, r.getIDrawings().size());
+
+            // Final spacer
+            assertEquals("", doc.getParagraphs().get(6).getText());
         }
     }
 

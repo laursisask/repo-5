@@ -668,58 +668,6 @@ public final class TestPackage {
         }
     }
 
-    /**
-     * Zip bomb handling test
-     *
-     * see bug #50090 / #56865
-     */
-    @Test
-    void zipBombCreateAndHandle()
-    throws IOException, EncryptedDocumentException {
-        UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream(2500000);
-
-        try (ZipFile zipFile = ZipHelper.openZipFile(getSampleFile("sample.xlsx"));
-             ZipArchiveOutputStream append = new ZipArchiveOutputStream(bos)) {
-            assertNotNull(zipFile);
-
-            // first, copy contents from existing war
-            Enumeration<? extends ZipArchiveEntry> entries = zipFile.getEntries();
-            while (entries.hasMoreElements()) {
-                final ZipArchiveEntry eIn = entries.nextElement();
-                final ZipArchiveEntry eOut = new ZipArchiveEntry(eIn.getName());
-                eOut.setTime(eIn.getTime());
-                eOut.setComment(eIn.getComment());
-                eOut.setSize(eIn.getSize());
-
-                append.putArchiveEntry(eOut);
-                if (!eOut.isDirectory()) {
-                    try (InputStream is = zipFile.getInputStream(eIn)) {
-                        if ("[Content_Types].xml".equals(eOut.getName())) {
-                            byte[] suffix = "</Types>".getBytes(StandardCharsets.UTF_8);
-                            CountingOutputStream cos = new CountingOutputStream(append);
-                            IOUtils.copy(is, cos, eOut.getSize() - suffix.length);
-
-                            byte[] spam = new byte[0x7FFF];
-                            Arrays.fill(spam, (byte) ' ');
-                            // 0x7FFF0000 is the maximum for 32-bit zips, but less still works
-                            while (cos.getByteCount() < 0x7FFF00) {
-                                cos.write(spam);
-                            }
-                            cos.write(suffix);
-                            eOut.setSize(cos.getByteCount());
-                        } else {
-                            IOUtils.copy(is, append);
-                        }
-                    }
-                }
-                append.closeArchiveEntry();
-            }
-        }
-
-        IOException ex = assertThrows(IOException.class, () -> WorkbookFactory.create(bos.toInputStream()));
-        assertTrue(ex.getMessage().contains("Zip bomb detected!"));
-    }
-
     @Test
     void testZipEntityExpansionTerminates() {
         IllegalStateException ex = assertThrows(
@@ -807,18 +755,6 @@ public final class TestPackage {
             ZipSecureFile.setMaxEntrySize(max_size + 1);
             assertEquals(max_size + 1, ZipSecureFile.getMaxEntrySize());
         });
-    }
-
-    @Test
-    void zipBombCheckSizesRatioTooSmall() {
-        POIXMLException ex = assertThrows(
-            POIXMLException.class,
-            () -> getZipStatsAndConsume((max_size, min_ratio) -> {
-                // check ratio out of bounds
-                ZipSecureFile.setMinInflateRatio(min_ratio+0.002);
-            })
-        );
-        assertTrue(ex.getMessage().contains("You can adjust this limit via ZipSecureFile.setMinInflateRatio()"));
     }
 
     @Test

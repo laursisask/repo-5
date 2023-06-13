@@ -27,5 +27,6 @@ public enum BodyType {
     FOOTER,
     FOOTNOTE,
     TABLECELL,
-    COMMENT
+    COMMENT,
+    TEXTBOXCONTENT,
 }

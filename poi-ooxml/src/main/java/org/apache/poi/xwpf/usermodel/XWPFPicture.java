@@ -22,17 +22,17 @@ import org.apache.poi.util.Units;
 import org.openxmlformats.schemas.drawingml.x2006.main.CTBlipFillProperties;
 import org.openxmlformats.schemas.drawingml.x2006.picture.CTPicture;
 
-
 public class XWPFPicture {
-
     private final CTPicture ctPic;
-    private final String description;
+    private String description;
     private final XWPFRun run;
 
     public XWPFPicture(CTPicture ctPic, XWPFRun run) {
         this.run = run;
         this.ctPic = ctPic;
-        description = ctPic.getNvPicPr().getCNvPr().getDescr();
+        if (ctPic.getNvPicPr() != null && ctPic.getNvPicPr().getCNvPicPr() != null) {
+            description = ctPic.getNvPicPr().getCNvPr().getDescr();
+        }
     }
 
     /**
