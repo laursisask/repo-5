@@ -75,7 +75,9 @@ export const LICENSE_FEATURES = {
 	VARIABLES: 'feat:variables',
 	SOURCE_CONTROL: 'feat:sourceControl',
 	API_DISABLED: 'feat:apiDisabled',
+	SHOW_NON_PROD_BANNER: 'feat:showNonProdBanner',
 	WORKFLOW_HISTORY: 'feat:workflowHistory',
+	DEBUG_IN_EDITOR: 'feat:debugInEditor',
 } as const;
 
 export const LICENSE_QUOTAS = {
