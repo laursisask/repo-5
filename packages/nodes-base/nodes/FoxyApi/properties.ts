@@ -1,4 +1,4 @@
-import {INodeProperties} from "n8n-workflow";
+import { INodeProperties } from 'n8n-workflow';
 
 export const uiProperties = [
 	{
@@ -45,9 +45,7 @@ export const uiProperties = [
 		required: false,
 		displayOptions: {
 			show: {
-				method: [
-					'get',
-				],
+				method: ['get'],
 			},
 		},
 		description: 'Additional Query String for Get Method.',
@@ -60,11 +58,7 @@ export const uiProperties = [
 		placeholder: 'Should be a Valid JSON',
 		displayOptions: {
 			show: {
-				method: [
-					'post',
-					'patch',
-					'put',
-				],
+				method: ['post', 'patch', 'put'],
 			},
 		},
 		typeOptions: {

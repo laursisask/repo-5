@@ -1,4 +1,4 @@
-import { IHookFunctions, IWebhookFunctions } from 'n8n-core';
+import { IHookFunctions, IWebhookFunctions } from 'n8n-workflow';
 
 import { IDataObject, INodeType, INodeTypeDescription, IWebhookResponseData } from 'n8n-workflow';
 
