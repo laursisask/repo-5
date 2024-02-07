@@ -1,51 +1,55 @@
 <template>
 	<div
-		:class="$style['expression-parameter-input']"
 		v-on-click-outside="onBlur"
+		:class="$style['expression-parameter-input']"
 		@keydown.tab="onBlur"
 	>
-		<div :class="[$style['all-sections'], { [$style['focused']]: isFocused }]">
-			<div
-				:class="[
-					$style['prepend-section'],
-					'el-input-group__prepend',
-					{ [$style['squared']]: isForRecordLocator },
-				]"
-			>
-				<ExpressionFunctionIcon />
+		<div
+			:class="[
+				$style['all-sections'],
+				{ [$style.focused]: isFocused, [$style.assignment]: isAssignment },
+			]"
+		>
+			<div :class="[$style['prepend-section'], 'el-input-group__prepend']">
+				<span v-if="isAssignment">=</span>
+				<ExpressionFunctionIcon v-else />
 			</div>
 			<InlineExpressionEditorInput
-				:modelValue="modelValue"
-				:isReadOnly="isReadOnly"
-				:targetItem="hoveringItem"
-				:isSingleLine="isForRecordLocator"
+				ref="inlineInput"
+				:model-value="modelValue"
+				:is-read-only="isReadOnly"
+				:target-item="hoveringItem"
+				:rows="rows"
+				:additional-data="additionalExpressionData"
 				:path="path"
 				@focus="onFocus"
 				@blur="onBlur"
 				@change="onChange"
-				ref="inlineInput"
 			/>
-			<n8n-icon
+			<n8n-button
 				v-if="!isDragging"
+				square
+				outline
+				type="tertiary"
 				icon="external-link-alt"
 				size="xsmall"
 				:class="$style['expression-editor-modal-opener']"
-				@click="$emit('modalOpenerClick')"
 				data-test-id="expander"
+				@click="$emit('modalOpenerClick')"
 			/>
 		</div>
-
 		<InlineExpressionEditorOutput
 			:segments="segments"
-			:isReadOnly="isReadOnly"
+			:is-read-only="isReadOnly"
 			:visible="isFocused"
-			:hoveringItemNumber="hoveringItemNumber"
+			:hovering-item-number="hoveringItemNumber"
 		/>
 	</div>
 </template>
 
 <script lang="ts">
 import { mapStores } from 'pinia';
+import type { PropType } from 'vue';
 import { defineComponent } from 'vue';
 
 import { useNDVStore } from '@/stores/ndv.store';
@@ -57,6 +61,7 @@ import { createExpressionTelemetryPayload } from '@/utils/telemetryUtils';
 
 import type { Segment } from '@/types/expressions';
 import type { TargetItem } from '@/Interface';
+import type { IDataObject } from 'n8n-workflow';
 
 type InlineExpressionEditorInputRef = InstanceType<typeof InlineExpressionEditorInput>;
 
@@ -66,12 +71,6 @@ export default defineComponent({
 		InlineExpressionEditorInput,
 		InlineExpressionEditorOutput,
 		ExpressionFunctionIcon,
-	},
-	data() {
-		return {
-			isFocused: false,
-			segments: [] as Segment[],
-		};
 	},
 	props: {
 		path: {
@@ -84,10 +83,24 @@ export default defineComponent({
 			type: Boolean,
 			default: false,
 		},
-		isForRecordLocator: {
+		rows: {
+			type: Number,
+			default: 5,
+		},
+		isAssignment: {
 			type: Boolean,
 			default: false,
 		},
+		additionalExpressionData: {
+			type: Object as PropType<IDataObject>,
+			default: () => ({}),
+		},
+	},
+	data() {
+		return {
+			isFocused: false,
+			segments: [] as Segment[],
+		};
 	},
 	computed: {
 		...mapStores(useNDVStore, useWorkflowsStore),
@@ -142,10 +155,9 @@ export default defineComponent({
 			}
 		},
 		onChange({ value, segments }: { value: string; segments: Segment[] }) {
-			if (this.isDragging) return;
-
 			this.segments = segments;
 
+			if (this.isDragging) return;
 			if (value === '=' + this.modelValue) return; // prevent report on change of target item
 
 			this.$emit('update:modelValue', value);
@@ -158,10 +170,12 @@ export default defineComponent({
 .expression-parameter-input {
 	position: relative;
 
+	:global(.cm-editor) {
+		background-color: var(--color-code-background);
+	}
+
 	.all-sections {
 		height: 30px;
-		display: flex;
-		flex-direction: row;
 		display: inline-table;
 		width: 100%;
 	}
@@ -172,9 +186,12 @@ export default defineComponent({
 		width: 22px;
 		text-align: center;
 	}
+}
 
-	.squared {
-		border-radius: 0;
+.assignment {
+	.prepend-section {
+		vertical-align: top;
+		padding-top: 4px;
 	}
 }
 
@@ -182,22 +199,26 @@ export default defineComponent({
 	position: absolute;
 	right: 0;
 	bottom: 0;
-	background-color: white;
+	background-color: var(--color-code-background);
 	padding: 3px;
 	line-height: 9px;
-	border: var(--border-base);
-	border-top-left-radius: var(--border-radius-base);
-	border-bottom-right-radius: var(--border-radius-base);
+	border: var(--input-border-color, var(--border-color-base))
+		var(--input-border-style, var(--border-style-base))
+		var(--input-border-width, var(--border-width-base));
 	cursor: pointer;
+	border-radius: 0;
+	border-top-left-radius: var(--border-radius-base);
+
+	&:hover {
+		border: var(--input-border-color, var(--border-color-base))
+			var(--input-border-style, var(--border-style-base))
+			var(--input-border-width, var(--border-width-base));
+	}
 
 	svg {
 		width: 9px !important;
 		height: 9px;
 		transform: rotate(270deg);
-
-		&:hover {
-			color: var(--color-primary);
-		}
 	}
 }
 
@@ -213,6 +234,6 @@ export default defineComponent({
 .focused > .expression-editor-modal-opener {
 	border-color: var(--color-secondary);
 	border-bottom-right-radius: 0;
-	background-color: white;
+	background-color: var(--color-code-background);
 }
 </style>

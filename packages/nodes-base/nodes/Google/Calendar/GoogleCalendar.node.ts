@@ -10,7 +10,10 @@ import type {
 } from 'n8n-workflow';
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
+import moment from 'moment-timezone';
+import { v4 as uuid } from 'uuid';
 import {
+	addNextOccurrence,
 	encodeURIComponentOnce,
 	getCalendars,
 	getTimezones,
@@ -23,10 +26,6 @@ import { eventFields, eventOperations } from './EventDescription';
 import { calendarFields, calendarOperations } from './CalendarDescription';
 
 import type { IEvent } from './EventInterface';
-
-import moment from 'moment-timezone';
-
-import { v4 as uuid } from 'uuid';
 
 export class GoogleCalendar implements INodeType {
 	description: INodeTypeDescription = {
@@ -378,6 +377,10 @@ export class GoogleCalendar implements INodeType {
 							{},
 							qs,
 						);
+
+						if (responseData) {
+							responseData = addNextOccurrence([responseData]);
+						}
 					}
 					//https://developers.google.com/calendar/v3/reference/events/list
 					if (operation === 'getAll') {
@@ -441,6 +444,10 @@ export class GoogleCalendar implements INodeType {
 								qs,
 							);
 							responseData = responseData.items;
+						}
+
+						if (responseData) {
+							responseData = addNextOccurrence(responseData);
 						}
 					}
 					//https://developers.google.com/calendar/v3/reference/events/patch
@@ -602,6 +609,6 @@ export class GoogleCalendar implements INodeType {
 				}
 			}
 		}
-		return this.prepareOutputData(returnData);
+		return [returnData];
 	}
 }

@@ -20,6 +20,7 @@ packages/**/.turbo
 *.tsbuildinfo
 cypress/videos/*
 cypress/screenshots/*
+cypress/downloads/*
 *.swp
 =======
 packages/*/package-lock.json

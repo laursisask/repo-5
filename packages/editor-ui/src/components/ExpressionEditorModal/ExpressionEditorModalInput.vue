@@ -1,12 +1,12 @@
 <template>
-	<div ref="root" @keydown.stop></div>
+	<div ref="root" :class="$style.editor" @keydown.stop></div>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { EditorView, keymap } from '@codemirror/view';
 import { EditorState, Prec } from '@codemirror/state';
-import { history, redo } from '@codemirror/commands';
+import { history, redo, undo } from '@codemirror/commands';
 
 import { workflowHelpers } from '@/mixins/workflowHelpers';
 import { expressionManager } from '@/mixins/expressionManager';
@@ -26,12 +26,15 @@ export default defineComponent({
 	props: {
 		modelValue: {
 			type: String,
+			required: true,
 		},
 		path: {
 			type: String,
+			required: true,
 		},
 		isReadOnly: {
 			type: Boolean,
+			default: false,
 		},
 	},
 	data() {
@@ -56,6 +59,7 @@ export default defineComponent({
 							return false;
 						},
 					},
+					{ key: 'Mod-z', run: undo },
 					{ key: 'Mod-Shift-z', run: redo },
 				]),
 			),
@@ -63,6 +67,7 @@ export default defineComponent({
 			history(),
 			expressionInputHandler(),
 			EditorView.lineWrapping,
+			EditorView.editable.of(!this.isReadOnly),
 			EditorState.readOnly.of(this.isReadOnly),
 			EditorView.contentAttributes.of({ 'data-gramm': 'false' }), // disable grammarly
 			EditorView.domEventHandlers({ scroll: forceParse }),
@@ -142,4 +147,14 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss"></style>
+<style lang="scss" module>
+.editor div[contenteditable='false'] {
+	background-color: var(--disabled-fill, var(--color-background-light));
+	cursor: not-allowed;
+}
+</style>
+<style lang="scss" scoped>
+:deep(.cm-content) {
+	border-radius: var(--border-radius-base);
+}
+</style>

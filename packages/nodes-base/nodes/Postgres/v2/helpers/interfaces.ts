@@ -15,8 +15,10 @@ export type ColumnInfo = {
 	column_name: string;
 	data_type: string;
 	is_nullable: string;
-	udt_name: string;
+	udt_name?: string;
 	column_default?: string;
+	is_generated?: 'ALWAYS' | 'NEVER';
+	identity_generation?: 'ALWAYS' | 'NEVER';
 };
 export type EnumInfo = {
 	typname: string;

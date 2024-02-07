@@ -64,7 +64,21 @@ export async function shopifyApiRequest(
 		delete options.qs;
 	}
 
-	return this.helpers.requestWithAuthentication.call(this, credentialType, options, {
+	// Only limit and fields are allowed for page_info links
+	// https://shopify.dev/docs/api/usage/pagination-rest#limitations-and-considerations
+	if (uri && uri.includes('page_info')) {
+		options.qs = {};
+
+		if (query.limit) {
+			options.qs.limit = query.limit;
+		}
+
+		if (query.fields) {
+			options.qs.fields = query.fields;
+		}
+	}
+
+	return await this.helpers.requestWithAuthentication.call(this, credentialType, options, {
 		oauth2: oAuth2Options,
 	});
 }
