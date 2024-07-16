@@ -13,7 +13,6 @@ metadata:
     app.kubernetes.io/component: "autoscaling-runner-set"
     {{- include "gha-runner-scale-set.labels" . | nindent 4 }}
   annotations:
-    sidecar.istio.io/inject: "{{ .Values.istio_inject }}"
     actions.github.com/values-hash: {{ toJson .Values | sha256sum | trunc 63 }}
     {{- $containerMode := .Values.containerMode }}
     {{- if not (kindIs "string" .Values.githubConfigSecret) }}
