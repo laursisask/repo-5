@@ -97,10 +97,6 @@ volumeMounts:
 
 {{- define "gha-runner-scale-set.dind-container" -}}
 image: docker:dind
-resources:
-  limits:
-    cpu: 2
-    memory: 2Gi
 args:
   - dockerd
   - --host=unix:///var/run/docker.sock
