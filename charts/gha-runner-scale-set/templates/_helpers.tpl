@@ -99,8 +99,8 @@ volumeMounts:
 image: docker:dind
 resources:
   limits:
-    cpu: 4
-    memory: 4Gi
+    cpu: 8
+    memory: 8Gi
   requests:
     cpu: 4
     memory: 4Gi
