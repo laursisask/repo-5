@@ -1,15 +1,15 @@
 apiVersion: v2
-name: bucketSimpleServer
+name: bucket-simple-server
 type: application
 description: >-
-  A Helm chart for bucketSimpleServer, a tiny server to safely expose 
+  A Helm chart for Bucket Simple Server, a tiny server to safely expose 
   some routes on from buckets without sharing cloud credentials
 version: 0.1.0 # chart version
 appVersion: "0.1.0" # application version
 kubeVersion: ">=1.22.0-0" # kubernetes version
-home: https://github.com/freepik-company/bucketSimpleServer
+home: https://github.com/freepik-company/bucket-simple-server
 sources:
-  - https://github.com/freepik-company/bucketSimpleServer
+  - https://github.com/freepik-company/bucket-simple-server
 keywords:
   - bucketSimpleServer
   - bucket
