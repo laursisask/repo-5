@@ -1,11 +1,13 @@
 package run
 
 import (
+	"bucket-simple-server/internal/config"
+	"bucket-simple-server/internal/globals"
+	"bucket-simple-server/internal/processor"
 	"fmt"
-	"hitman/internal/config"
-	"hitman/internal/globals"
-	"hitman/internal/processor"
 	"log"
+	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -41,7 +43,7 @@ func NewCommand() *cobra.Command {
 	//
 	cmd.Flags().String("log-level", "info", "Verbosity level for logs")
 	cmd.Flags().Bool("disable-trace", true, "Disable showing traces in logs")
-	cmd.Flags().String("config", "hitman.yaml", "Path to the YAML config file")
+	cmd.Flags().String("config", "bucket-simple-server.yaml", "Path to the YAML config file")
 
 	return cmd
 }
@@ -60,7 +62,7 @@ func RunCommand(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf(LogLevelFlagErrorMessage, err)
 	}
-	globals.ExecContext.LogLevel = logLevelFlag
+	globals.Application.LogLevel = logLevelFlag
 
 	disableTraceFlag, err := cmd.Flags().GetBool("disable-trace")
 	if err != nil {
@@ -76,35 +78,40 @@ func RunCommand(cmd *cobra.Command, args []string) {
 	// EXECUTION FLOW RELATED
 	/////////////////////////////
 
-	globals.ExecContext.Logger.Infof("starting Hitman. Getting ready to kill some targets")
+	globals.Application.Logger.Infof("starting BucketSimpleServer. Getting ready.")
 
 	// Parse and store the config
 	configContent, err := config.ReadFile(configPath)
 	if err != nil {
-		globals.ExecContext.Logger.Fatalf(fmt.Sprintf(ConfigNotParsedErrorMessage, err))
+		globals.Application.Logger.Fatalf(fmt.Sprintf(ConfigNotParsedErrorMessage, err))
 	}
-	globals.ExecContext.Config = configContent
+	globals.Application.Config = configContent
 
 	//
-	duration, err := time.ParseDuration(configContent.Spec.Synchronization.Time)
-	if err != nil {
-		globals.ExecContext.Logger.Fatalf(UnableParseDurationErrorMessage, err)
-	}
-
-	//
-	processorObj, err := processor.NewProcessor()
-	if err != nil {
-		globals.ExecContext.Logger.Infof("error creating processor: %s", err.Error())
-	}
-
 	for {
-		globals.ExecContext.Logger.Info("syncing resources")
-		err = processorObj.SyncResources()
+
+		// Create the processor to handle requests
+		processorObj, err := processor.NewProcessor()
 		if err != nil {
-			globals.ExecContext.Logger.Infof("error syncing resources: %s", err)
+			globals.Application.Logger.Infof("Failed to create a processor. Reason: ", err)
 		}
 
-		globals.ExecContext.Logger.Infof("syncing again in %s", duration.String())
-		time.Sleep(duration)
+		// Create the webserver to serve the requests
+		mux := http.NewServeMux()
+		mux.HandleFunc("/", processorObj.HandleRequest)
+
+		//
+		webserverListenStr := configContent.Spec.Webserver.Listener.Host + ":" +
+			strconv.Itoa(configContent.Spec.Webserver.Listener.Port)
+
+		globals.Application.Logger.Infof("Starting webserver on %s", webserverListenStr)
+
+		err = http.ListenAndServe(webserverListenStr, mux)
+		if err != nil {
+			globals.Application.Logger.Infof("Server failed. Reason: ", err)
+		}
+
+		globals.Application.Logger.Infof("Server will be restarted in some moments")
+		time.Sleep(5 * time.Second)
 	}
 }

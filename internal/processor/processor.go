@@ -1,176 +1,128 @@
 package processor
 
 import (
+	"bucket-simple-server/api/v1alpha1"
+	"bucket-simple-server/internal/globals"
 	"fmt"
-	"hitman/api/v1alpha1"
-	"hitman/internal/globals"
-	"hitman/internal/kubernetes"
-	"hitman/internal/template"
-	"reflect"
+	"io"
+	"net/http"
 	"regexp"
-	"slices"
+	"strings"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
+	"cloud.google.com/go/storage"
+	"google.golang.org/api/option"
 )
 
 type Processor struct {
-	Client *dynamic.DynamicClient
-}
+	// compiledRouteList is a list of compiled regex expressions
+	// that represent the allowed routes
+	compiledRouteList []*regexp.Regexp
 
-func NewProcessor() (processor *Processor, err error) {
-
-	client, err := kubernetes.NewClient()
-	if err != nil {
-		return processor, err
-	}
-
-	return &Processor{
-		Client: client,
-	}, err
+	// GCSClient is a Google Cloud Storage client
+	GCSClient *storage.Client
 }
 
 // TODO
-func (p *Processor) SyncResources() (err error) {
+func NewProcessor() (*Processor, error) {
 
-	for _, configResource := range globals.ExecContext.Config.Spec.Resources {
+	newProcessor := Processor{}
 
-		// Matching a name is required
-		if reflect.ValueOf(configResource.Target.Name).IsZero() {
-			globals.ExecContext.Logger.Infof("target name or namespace selector is missing for group '%s' version '%s' resource '%s'. Skipping",
-				configResource.Target.Group, configResource.Target.Version, configResource.Target.Resource)
-			continue
-		}
-
-		// Matching a name is required
-		if configResource.Target.Name.MatchExact != "" && configResource.Target.Name.MatchRegex != "" {
-			globals.ExecContext.Logger.Infof("target name can only have one selector: matchExact or matchRegex. Skipping")
-			continue
-		}
-
-		if configResource.Target.Namespace.MatchExact != "" && configResource.Target.Namespace.MatchRegex != "" {
-			globals.ExecContext.Logger.Infof("targets namespace can only have one selector: matchExact or matchRegex. Skipping")
-			continue
-		}
-
-		// Get the resources of the target type
-		gvr := schema.GroupVersionResource{
-			Group:    configResource.Target.Group,
-			Version:  configResource.Target.Version,
-			Resource: configResource.Target.Resource,
-		}
-
-		resourceRaw := p.Client.Resource(gvr)
-
-		if configResource.Target.Namespace.MatchExact != "" {
-			resourceRaw.Namespace(configResource.Target.Namespace.MatchExact)
-		}
-
-		resourceList, err := resourceRaw.List(globals.ExecContext.Context, v1.ListOptions{})
-		if err != nil {
-			globals.ExecContext.Logger.Infof("error listing resources of type '%s' in namespace '%s': %s",
-				gvr.String(), configResource.Target.Namespace, err)
-			continue
-		}
-
-		//
-		compiledRegex, err := regexp.Compile(configResource.Target.Name.MatchRegex)
-		if err != nil {
-			globals.ExecContext.Logger.Infof("error compiling regular expression '%s' for resource name: %s", configResource.Target.Name.MatchRegex, err)
-			continue
-		}
-
-		compiledRegexNamespace, err := regexp.Compile(configResource.Target.Namespace.MatchRegex)
-		if err != nil {
-			globals.ExecContext.Logger.Infof("error compiling regular expression '%s' for resource namespace: %s", configResource.Target.Name.MatchRegex, err)
-			continue
-		}
-
-		// Perform the actions over the resources
-		for _, resource := range resourceList.Items {
-
-			// Matching namespace by regex and resource does NOT meet? Skip
-			if configResource.Target.Namespace.MatchRegex != "" &&
-				!compiledRegexNamespace.MatchString(resource.GetNamespace()) {
-				continue
-			}
-
-			// Matching name by exact string and resource does NOT meet? Skip
-			if configResource.Target.Name.MatchExact != "" &&
-				resource.GetName() != configResource.Target.Name.MatchExact {
-				continue
-			}
-
-			// Matching name by regex and resource does NOT meet? Skip
-			if configResource.Target.Name.MatchRegex != "" &&
-				!compiledRegex.MatchString(resource.GetName()) {
-				continue
-			}
-
-			// Process this object. Delete in case of success
-			objectDeleted, err := p.processObject(gvr, resource, configResource.Conditions)
-			if err != nil {
-				globals.ExecContext.Logger.Infof("error processing object: %s", err)
-				continue
-			}
-
-			if !objectDeleted {
-				globals.ExecContext.Logger.Infof("resource '%s' in namespace '%s' did NOT meet the conditions",
-					resource.GetName(), resource.GetNamespace())
-				continue
-			}
-
-			globals.ExecContext.Logger.Infof("resource '%s' in namespace '%s' was deleted successfully", resource.GetName(), resource.GetNamespace())
-		}
+	// Compile routes just once to increase performance
+	ctrList, err := newProcessor.compileRouteExpressions(globals.Application.Config.Spec.Webserver.AllowedTargets)
+	if err != nil {
+		return &newProcessor, fmt.Errorf("error compiling allowed routes regex: %s", err)
 	}
 
-	return err
+	newProcessor.compiledRouteList = ctrList
+
+	//
+	newProcessor.GCSClient, err = storage.NewClient(globals.Application.Context,
+		option.WithCredentialsFile(globals.Application.Config.Spec.Source.GCS.Credentials.Path))
+	if err != nil {
+		return &newProcessor, fmt.Errorf("error creating GCS client: %s", err)
+	}
+
+	return &newProcessor, err
 }
 
-// processObject process an object coming from arguments.
-// It computes templating, evaluates conditions and decides whether to delete it or not.
-func (p *Processor) processObject(gvr schema.GroupVersionResource, object unstructured.Unstructured, conditionList []v1alpha1.ConditionT) (result bool, err error) {
+// compileRouteExpressions return a list of compiled regex expressions of routes passed in allowed targets.
+func (p *Processor) compileRouteExpressions(targets []v1alpha1.AllowedTargetT) (compiledRouteList []*regexp.Regexp, err error) {
 
-	if globals.ExecContext.LogLevel == "debug" {
-		globals.ExecContext.Logger.Infof("processing object: group: '%s', version: '%s', resource: '%s', name: '%s', namespace: '%s'",
-			gvr.Group, gvr.Version, gvr.Resource, object.GetName(), object.GetNamespace())
-	}
-
-	// Create the object that will be injected on templating system
-	templateInjectedObject := map[string]interface{}{}
-	templateInjectedObject["object"] = object.Object
-
-	// Evaluate the conditions for targeted object
-	var conditionFlags []bool
-
-	for _, condition := range conditionList {
-
-		parsedKey, err := template.EvaluateTemplate(condition.Key, templateInjectedObject)
+	for _, target := range targets {
+		compiledRegex, err := regexp.Compile(target.Route)
 		if err != nil {
-			return false, fmt.Errorf("error evaluating condition template: %s", err)
+			return compiledRouteList, fmt.Errorf("error compiling regex %s: %s", target.Route, err)
 		}
 
-		conditionFlags = append(conditionFlags, parsedKey == condition.Value)
+		compiledRouteList = append(compiledRouteList, compiledRegex)
+	}
 
-		if globals.ExecContext.LogLevel == "debug" {
-			globals.ExecContext.Logger.Infof("condition: key: '%s', value: '%s', equals: '%t'",
-				parsedKey, condition.Value, parsedKey == condition.Value)
+	return compiledRouteList, nil
+}
+
+// TODO
+func (p *Processor) HandleRequest(w http.ResponseWriter, r *http.Request) {
+
+	// Check Authorization header presence
+	authorizationHeader := r.Header.Get("Authorization")
+	if authorizationHeader == "" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Check Authorization header format
+	authorizationHeaderParts := strings.Split(authorizationHeader, " ")
+	if len(authorizationHeaderParts) != 2 {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if authorizationHeaderParts[0] != "Bearer" {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Check Authorization header token
+	// ATM, only Bearer tokens are supported
+	requestAuthorized := false
+	for _, credential := range globals.Application.Config.Spec.Webserver.Credentials {
+
+		if strings.ToLower(credential.Type) != "bearer" {
+			continue
+		}
+
+		if credential.Token == authorizationHeaderParts[1] {
+			requestAuthorized = true
 		}
 	}
 
-	// Conditions not met. Skip
-	if slices.Contains(conditionFlags, false) {
-		return false, err
+	if !requestAuthorized {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
 	}
 
-	// Finally, delete the object
-	err = p.Client.Resource(gvr).Namespace(object.GetNamespace()).
-		Delete(globals.ExecContext.Context, object.GetName(), v1.DeleteOptions{})
+	// Check if the route is allowed
+	urlPathAllowed := false
+	for _, compiledRoute := range p.compiledRouteList {
+		if compiledRoute.MatchString(r.URL.Path) {
+			urlPathAllowed = true
+		}
+	}
+
+	if !urlPathAllowed {
+		http.Error(w, "Forbidden", http.StatusForbidden)
+		return
+	}
+
+	// Get the GCS file reader
+	objectPath := strings.TrimPrefix(r.URL.Path, "/")
+	srcReader, err := p.GCSClient.Bucket(globals.Application.Config.Spec.Source.GCS.Bucket).Object(objectPath).NewReader(globals.Application.Context)
 	if err != nil {
-		return false, fmt.Errorf("error deleting object: %s", err)
+		globals.Application.Logger.Infof("Error reading file from GCS: ", err)
+		http.Error(w, "Not Found", http.StatusNotFound)
+		return
 	}
+	defer srcReader.Close()
 
-	return true, err
+	io.Copy(w, srcReader)
 }

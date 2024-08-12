@@ -4,7 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"hitman/internal/cmd"
+	"bucket-simple-server/internal/cmd"
 )
 
 func main() {

@@ -1,8 +1,8 @@
 package globals
 
 import (
+	"bucket-simple-server/api/v1alpha1"
 	"context"
-	"hitman/api/v1alpha1"
 	"time"
 
 	"go.uber.org/zap"
@@ -10,13 +10,13 @@ import (
 )
 
 var (
-	ExecContext = ExecutionContext{
+	Application = ApplicationT{
 		Context: context.Background(),
 	}
 )
 
 // ExecutionContext TODO
-type ExecutionContext struct {
+type ApplicationT struct {
 	Context  context.Context
 	Logger   zap.SugaredLogger
 	LogLevel string
@@ -47,6 +47,6 @@ func SetLogger(logLevel string, disableTrace bool) (err error) {
 		return err
 	}
 
-	ExecContext.Logger = *logger.Sugar()
+	Application.Logger = *logger.Sugar()
 	return nil
 }

@@ -1,22 +1,21 @@
-# Hitman
+# Bucket Simple Server
 
-![GitHub go.mod Go version (subdirectory of monorepo)](https://img.shields.io/github/go-mod/go-version/achetronic/hitman)
-![GitHub](https://img.shields.io/github/license/achetronic/hitman)
+![GitHub go.mod Go version (subdirectory of monorepo)](https://img.shields.io/github/go-mod/go-version/freepik-company/bucket-simple-server)
+![GitHub](https://img.shields.io/github/license/freepik-company/bucket-simple-server)
 
 ![YouTube Channel Subscribers](https://img.shields.io/youtube/channel/subscribers/UCeSb3yfsPNNVr13YsYNvCAw?label=achetronic&link=http%3A%2F%2Fyoutube.com%2Fachetronic)
 ![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/achetronic?style=flat&logo=twitter&link=https%3A%2F%2Ftwitter.com%2Fachetronic)
 
-A daemon for Kubernetes to kill target resources under user-defined templated conditions
+A tiny server to safely expose some routes from your buckets without sharing cloud credentials
 
 ## Motivation
 
-In today's fast-paced environments, Kubernetes clusters often manage systems that dynamically create and destroy resources automatically. Examples of these are pipelines and cronjobs. 
+This project was created to solve a common problem: securely sharing reports and small files without exposing an entire storage bucket. 
 
-However, these automated processes can sometimes get stuck, causing disruptions that affect the smooth operation of the entire system. Often, simply terminating some of these objects can restore normalcy. 
+Setting up a complex proxy like Envoy is time-consuming and often requires crafting custom plugins to connect to different storage services. While Envoy is great for large-scale projects, this lightweight solution is perfect for smaller needs, such as automated
+reports, etc.
 
-There is a need for a solution that empowers Kubernetes administrators to automate this cleanup process efficiently. 
-This project exists to provide a robust agent for automating the deletion of potential stuck resources, 
-ensuring your Kubernetes clusters run smoothly and reliably.
+It’s simple, focused, and easy to use, making secure file sharing much easier.
 
 ## Flags
 
@@ -25,16 +24,16 @@ They are described in the following table:
 
 | Name              | Description                    |    Default    | Example                  |
 |:------------------|:-------------------------------|:-------------:|:-------------------------|
-| `--config`        | Path to the YAML config file   | `hitman.yaml` | `--config ./hitman.yaml` |
+| `--config`        | Path to the YAML config file   | `config.yaml` | `--config ./config.yaml` |
 | `--log-level`     | Verbosity level for logs       |    `info`     | `--log-level info`       |
 | `--disable-trace` | Disable showing traces in logs |    `info`     | `--log-level info`       |
 
 > Output is thrown always in JSON as it is more suitable for automations
 
 ```console
-hitman run \
+bss run \
     --log-level=info
-    --config="./hitman.yaml"
+    --config="./config.yaml"
 ```
 
 ## Examples
@@ -45,48 +44,42 @@ Here you have a complete example. More up-to-date one will always be maintained 
 
 ```yaml
 version: v1alpha1
-kind: Hitman
+kind: Config
 metadata:
-  name: killing-sample
+  name: access-to-reports
 spec:
-  synchronization:
-    time: 1m
+  # Source of data to be served. 
+  # This section can be extended to support other sources like S3, Azure Blob Storage, etc.
+  source:
+    gcs:
+      bucket: general-purposes-bucket
+      credentials:
+        path: /tmp/credentials.json
 
-  resources:
+  # Web server configuration
+  # Here it's the place to define the server configuration like port, host, credentials, etc.
+  webServer:
+    listener:
+      port: 9090
+      host: localhost
 
-    - target:
-        group: ""
-        version: v1
-        resource: pods
+    # Several credentials can be defined
+    credentials:
+      - type: "bearer"
+        token: "12345xxxx12345"
 
-        # Select the resources by their name
-        # Choose one of the following options
-        name:
-          matchRegex: ^(coredns-)
-          #matchExact: "coredns-xxxxxxxxxx-yyyyy"
-        
-        # Select the namespace where the resources are located
-        # Choose one of the following options
-        namespace: 
-          matchRegex: ^(kube-system)
-          #matchExact: kube-system
-        
-      conditions:
+      - type: "bearer"
+        token: "6789yyyy6789"
+      
+      - type: "bearer"
+        token: "${TOKEN_FROM_ENV}"
 
-      # Delete the resources when they are older than 10 minutes
-      - key: |-
-          {{/* Define some variables */}}
-          {{- $maxAgeMinutes := 10 -}}
-
-          {{- $nowTimestamp := (now | unixEpoch) -}}
-          {{- $podStartTime := (toDate "2006-01-02T15:04:05Z07:00" .object.status.startTime) | unixEpoch -}}
-          
-          {{/* Calculate the age of the resource in minutes */}}
-          {{- $minutedFromNow := int (round (div (sub $nowTimestamp $podStartTime) 60) 0) -}}
-            
-          {{/* Print true ONLY if the resource is older than 5 minutes */}}
-          {{- printf "%v" (ge $minutedFromNow $maxAgeMinutes) -}}
-        value: true
+    # Routes must be defined to allow access to the data
+    # They are defined as golang regular expressions
+    # Remember: negative lookbehind is not supported
+    allowedTargets:
+      - route: "^/qa-reports/(.*).json$"
+      - route: "^/pipelines-results/(.*).json$"
 
 ```
 
@@ -95,31 +88,31 @@ spec:
 
 ## How to deploy
 
-This project is designed specially for Kubernetes, but also provides binary files 
+This project can be deployed in Kubernetes, but also provides binary files 
 and Docker images to make it easy to be deployed however wanted
 
 ### Binaries
 
-Binary files for most popular platforms will be added to the [releases](https://github.com/achetronic/hitman/releases)
+Binary files for most popular platforms will be added to the [releases](https://github.com/freepik-company/bucket-simple-server/releases)
 
 ### Kubernetes
 
-You can deploy `hitman` in Kubernetes using Helm as follows:
+You can deploy `bucket-simple-server` in Kubernetes using Helm as follows:
 
 ```console
-helm repo add hitman https://achetronic.github.io/hitman/
+helm repo add bucket-simple-server https://freepik-company.github.io/bucket-simple-server/
 
-helm upgrade --install --wait hitman \
-  --namespace hitman \
-  --create-namespace achetronic/hitman
+helm upgrade --install --wait bucket-simple-server \
+  --namespace bucket-simple-server \
+  --create-namespace freepik-company/bucket-simple-server
 ```
 
-> More information and Helm packages [here](https://achetronic.github.io/hitman/)
+> More information and Helm packages [here](https://freepik-company.github.io/bucket-simple-server/)
 
 
 ### Docker
 
-Docker images can be found in GitHub's [packages](https://github.com/achetronic/hitman/pkgs/container/hitman) 
+Docker images can be found in GitHub's [packages](https://github.com/freepik-company/bucket-simple-server/pkgs/container/bucket-simple-server) 
 related to this repository
 
 > Do you need it in a different container registry? I think this is not needed, but if I'm wrong, please, let's discuss 

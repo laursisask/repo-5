@@ -1,4 +1,4 @@
-# Default values for hitman.
+# Default values for Bucket Simple Server.
 
 nameOverride: ""
 fullnameOverride: ""
@@ -28,7 +28,7 @@ agent:
   # Specify the configuration
   config: |
     # A complete example in the upstream repository
-    # Ref: https://github.com/achetronic/hitman
+    # Ref: https://github.com/freepik-company/bucketSimpleServer
 
   serviceAccount:
     # Specifies whether a service account should be created
@@ -37,12 +37,12 @@ agent:
     annotations: { }
     # The name of the service account to use.
     # If not set and create is true, a name is generated using the fullname template
-    name: "hitman"
+    name: "bucketSimpleServer"
 
   replicaCount: 1
 
   image:
-    repository: ghcr.io/achetronic/hitman
+    repository: ghcr.io/freepik-company/bucketSimpleServer
     pullPolicy: IfNotPresent
     # Overrides the image tag whose default is the chart appVersion.
     tag: "v0.1.0"
@@ -50,7 +50,7 @@ agent:
   imagePullSecrets: []
 
   # Extra args to pass to the agent.
-  # Ref: https://github.com/achetronic/hitman?tab=readme-ov-file#flags
+  # Ref: https://github.com/freepik-company/bucketSimpleServer?tab=readme-ov-file#flags
   # Example:
   # - --log-level=debug
   extraArgs: []

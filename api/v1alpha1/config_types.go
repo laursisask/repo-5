@@ -16,50 +16,58 @@ limitations under the License.
 
 package v1alpha1
 
-// TargetNameT defines TODO
-type TargetSelectorT struct {
-	MatchExact string `yaml:"matchExact,omitempty"`
-	MatchRegex string `yaml:"matchRegex,omitempty"`
-}
-
-// TargetT defines TODO
-type TargetT struct {
-	Group     string          `yaml:"group"`
-	Version   string          `yaml:"version"`
-	Resource  string          `yaml:"resource"`
-	Name      TargetSelectorT `yaml:"name"`
-	Namespace TargetSelectorT `yaml:"namespace"`
-}
-
-// ConditionT defines TODO
-type ConditionT struct {
-	Key   string `yaml:"key"`
-	Value string `yaml:"value"`
-}
-
-// ResourceT defines TODO
-type ResourceT struct {
-	Target     TargetT      `yaml:"target"`
-	Conditions []ConditionT `yaml:"conditions"`
-}
-
-// MetadataSpec TODO
+// MetadataT TODO
 type MetadataT struct {
 	Name string `yaml:"name"`
 }
 
-// SynchronizationT defines TODO
-type SynchronizationT struct {
-	Time string `yaml:"time"`
+// GoogleContentStorageCredentialsT TODO
+type GoogleContentStorageCredentialsT struct {
+	Path string `yaml:"path"`
 }
 
-// SpecificationSpec TODO
+// ConditionT TODO
+type GoogleContentStorageT struct {
+	Bucket      string                           `yaml:"bucket"`
+	Credentials GoogleContentStorageCredentialsT `yaml:"credentials"`
+}
+
+// SourceT TODO
+type SourceT struct {
+	GCS GoogleContentStorageT `yaml:"gcs"`
+}
+
+// ListenerT TODO
+type ListenerT struct {
+	Port int    `yaml:"port"`
+	Host string `yaml:"host"`
+}
+
+// CredentialT TODO
+type CredentialT struct {
+	Type  string `yaml:"type"`
+	Token string `yaml:"token"`
+}
+
+// AllowedTargetT TODO
+type AllowedTargetT struct {
+	Route string `yaml:"route"`
+}
+
+// WebserverT TODO
+type WebserverT struct {
+	Listener       ListenerT        `yaml:"listener"`
+	Credentials    []CredentialT    `yaml:"credentials"`
+	AllowedTargets []AllowedTargetT `yaml:"allowedTargets"`
+}
+
+// SpecificationT TODO
 type SpecificationT struct {
-	Synchronization SynchronizationT `yaml:"synchronization"`
-	Resources       []ResourceT      `yaml:"resources"`
+	Source    SourceT    `yaml:"source"`
+	Webserver WebserverT `yaml:"webServer"`
 }
 
-// ConfigSpec TODO
+// ConfigT TODO
 type ConfigT struct {
 	ApiVersion string         `yaml:"apiVersion"`
 	Kind       string         `yaml:"kind"`

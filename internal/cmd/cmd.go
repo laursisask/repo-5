@@ -5,8 +5,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"hitman/internal/cmd/run"
-	"hitman/internal/cmd/version"
+	"bucket-simple-server/internal/cmd/run"
+	"bucket-simple-server/internal/cmd/version"
 )
 
 const (
