@@ -90,6 +90,12 @@ agent:
   # - --log-level=debug
   extraArgs: []
 
+  # extraPorts is a list of extra ports. Specified as a YAML list.
+  # This is useful if you need to add additional ports to the deployment in dynamic way.
+  extraPorts: null
+    # - containerPort: 8300
+    #   name: http-monitoring
+
   # Define a list of environment variables used inside the controller
   # Ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/#use-configmap-defined-environment-variables-in-pod-commands
   # - name: SPECIAL_LEVEL_KEY

@@ -73,6 +73,19 @@ spec:
             {{- toYaml . | nindent 12 }}
             {{- end }}
 
+          ports:
+            {{ range $key, $value := .Values.agent.service.ports }}
+            - name: {{ $value.name }}
+              containerPort: {{ $value.targetPort }}
+              {{- with $value.protocol }}
+              protocol: {{ . }}
+              {{- end }}
+            {{- end }}
+
+            {{- with .Values.agent.extraPorts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+
       {{- with .Values.agent.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
