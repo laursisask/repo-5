@@ -30,7 +30,7 @@ spec:
           image: "{{ .Values.agent.image.repository }}:{{ .Values.agent.image.tag | default (printf "v%s" .Chart.AppVersion) }}"
           imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
           command:
-            - /bucketSimpleServer
+            - /bss
             - run
             - --config
             - /etc/agent/bucketSimpleServer.yaml
