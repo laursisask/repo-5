@@ -250,7 +250,7 @@ jobs:
         repository: sourcegraph/devx-service
         token: ${{ secrets.PR_AUDITOR_TOKEN }}
     - continue-on-error: true
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: '1.22'
     - continue-on-error: true
