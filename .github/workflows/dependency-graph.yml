@@ -248,7 +248,7 @@ jobs:
     - continue-on-error: true
       uses: actions/checkout@v3
     - continue-on-error: true
-      uses: scalacenter/sbt-dependency-submission@v2
+      uses: scalacenter/sbt-dependency-submission@v3
       with:
         working-directory: ./
     - name: after
