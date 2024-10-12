@@ -42,7 +42,7 @@ require (
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.9.0
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	github.com/uber/jaeger-client-go v2.29.1+incompatible
 	github.com/uber/jaeger-lib v2.4.1+incompatible
 	github.com/vektra/mockery v0.0.0-20181123154057-e78b021dcbb5
@@ -50,7 +50,7 @@ require (
 	github.com/xdg-go/scram v1.0.2
 	go.opentelemetry.io/collector/model v0.37.0
 	go.uber.org/atomic v1.9.0
-	go.uber.org/automaxprocs v1.4.0
+	go.uber.org/automaxprocs v1.6.0
 	go.uber.org/zap v1.19.1
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/net v0.0.0-20210917221730-978cfadd31cf
@@ -143,5 +143,5 @@ require (
 	google.golang.org/genproto v0.0.0-20210828152312-66f60bf46e71 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
