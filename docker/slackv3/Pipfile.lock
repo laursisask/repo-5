@@ -496,11 +496,12 @@
                 "optional"
             ],
             "hashes": [
-                "sha256:63ce5e6253a31873d6c921c9feaa842a93a2f56e6e009cb7daf406f4bc4df798",
-                "sha256:a25d3d2bf0bf605d54d764d4a463fe7c0659ee24c13d75653e2bec247bd5998b"
+                "sha256:e328bb661d95db5f66b993b1d64288ac7c72201a745b4c7cf8848dafb7b74e40",
+                "sha256:ef93beec3ce9c8f64da02fd487598a05ec4bc9c92ceed58f122dbe632691cbe2"
             ],
             "index": "pypi",
-            "version": "==3.18.1"
+            "markers": "python_version >= '3.6'",
+            "version": "==3.33.1"
         },
         "sqlalchemy": {
             "hashes": [
