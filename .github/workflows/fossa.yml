@@ -261,7 +261,7 @@ jobs:
         '
     - continue-on-error: true
       name: Run FOSSA scan and upload report
-      uses: fossa-contrib/fossa-action@v1.1.4
+      uses: fossa-contrib/fossa-action@v3.0.0
       with:
         fossa-api-key: 304657e2357ba57b416b94e6b119131b
         github-token: ${{ github.token }}
