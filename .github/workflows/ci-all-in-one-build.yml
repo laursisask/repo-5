@@ -268,7 +268,7 @@ jobs:
       name: Install tools
       run: make install-ci
     - continue-on-error: true
-      uses: docker/setup-qemu-action@v1
+      uses: docker/setup-qemu-action@v3
     - continue-on-error: true
       env:
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}

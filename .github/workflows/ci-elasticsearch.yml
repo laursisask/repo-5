@@ -262,7 +262,7 @@ jobs:
       name: Install tools
       run: make install-ci
     - continue-on-error: true
-      uses: docker/setup-qemu-action@v1
+      uses: docker/setup-qemu-action@v3
     - continue-on-error: true
       name: Run elasticsearch integration tests
       run: bash scripts/es-integration-test.sh ${{ matrix.version.distribution }}

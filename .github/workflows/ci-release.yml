@@ -286,7 +286,7 @@ jobs:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ github.ref }}
     - continue-on-error: true
-      uses: docker/setup-qemu-action@v1
+      uses: docker/setup-qemu-action@v3
     - continue-on-error: true
       env:
         DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
