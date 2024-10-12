@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/bradleyfalzon/ghinstallation v1.1.1
 	github.com/getoutreach/goql v1.9.3
-	github.com/sethvargo/go-githubactions v1.0.0
+	github.com/sethvargo/go-githubactions v1.3.0
 	github.com/slack-go/slack v0.11.3
 	github.com/stretchr/testify v1.7.1
 )
@@ -33,6 +33,5 @@ require (
 require (
 	github.com/google/go-github/v43 v43.0.0
 	github.com/pkg/errors v0.9.1
-	github.com/sethvargo/go-envconfig v0.6.1 // indirect
 	golang.org/x/oauth2 v0.0.0-20220608161450-d0670ef3b1eb
 )
