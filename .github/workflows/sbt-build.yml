@@ -265,7 +265,7 @@ jobs:
     - continue-on-error: true
       id: ivy-cache
       name: Cache ivy cache
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         key: ${{ runner.os }}--${{ hashFiles('build.sbt') }}
         path: '~/.ivy2
