@@ -269,7 +269,7 @@ jobs:
     - continue-on-error: true
       id: docker_build_publication_server
       name: Build and push
-      uses: docker/build-push-action@v3
+      uses: docker/build-push-action@v6
       with:
         build-args: 'PUBLICATION_SERVER_JAR=./rpki-publication-server.jar
 
