@@ -23,7 +23,7 @@ require (
 	github.com/spf13/afero v1.2.2 // matches version used by terraform
 	github.com/terraform-linters/tflint-plugin-sdk v0.8.3-0.20210614125323-8364139f3745
 	github.com/terraform-linters/tflint-ruleset-aws v0.4.1
-	github.com/zclconf/go-cty v1.8.3
-	golang.org/x/crypto v0.0.0-20210513164829-c07d793c2f9a
+	github.com/zclconf/go-cty v1.15.0
+	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 )
