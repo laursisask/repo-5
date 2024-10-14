@@ -248,7 +248,7 @@ jobs:
     - continue-on-error: true
       env:
         COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
-      uses: mislav/bump-homebrew-formula-action@v1
+      uses: mislav/bump-homebrew-formula-action@v3
       with:
         formula-name: tflint
     - name: after
