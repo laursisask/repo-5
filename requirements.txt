@@ -5,7 +5,7 @@ aws-cdk.aws-amazonmq==v1.114.0
 aws-cdk.aws-amplify==v1.114.0
 aws-cdk.aws-apigateway==v1.114.0
 aws-cdk.aws-applicationautoscaling==v1.114.0
-aws-cdk.aws-appmesh==v1.114.0
+aws-cdk.aws-appmesh==v1.204.0
 aws-cdk.aws-appstream==v1.114.0
 aws-cdk.aws-appsync==v1.114.0
 aws-cdk.aws-athena==v1.114.0
