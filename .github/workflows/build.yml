@@ -261,7 +261,7 @@ jobs:
       uses: docker/setup-qemu-action@v1
     - continue-on-error: true
       name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+      uses: docker/setup-buildx-action@v3
     - continue-on-error: true
       name: Set up Pack CLI for Buildpacks
       run: 'sudo add-apt-repository ppa:cncf-buildpacks/pack-cli
