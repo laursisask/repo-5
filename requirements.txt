@@ -111,7 +111,7 @@ aws-cdk.aws-servicecatalog==v1.114.0
 aws-cdk.aws-servicediscovery==v1.114.0
 aws-cdk.aws-ses==v1.114.0
 aws-cdk.aws-sns==v1.114.0
-aws-cdk.aws-sns-subscriptions==v1.114.0
+aws-cdk.aws-sns-subscriptions==v1.204.0
 aws-cdk.aws-sqs==v1.114.0
 aws-cdk.aws-ssm==v1.114.0
 aws-cdk.aws-stepfunctions==v1.114.0
