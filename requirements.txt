@@ -105,7 +105,7 @@ aws-cdk.aws-s3-notifications==v1.114.0
 aws-cdk.aws-sagemaker==v1.114.0
 aws-cdk.aws-sam==v1.114.0
 aws-cdk.aws-sdb==v1.114.0
-aws-cdk.aws-secretsmanager==v1.114.0
+aws-cdk.aws-secretsmanager==v1.204.0
 aws-cdk.aws-securityhub==v1.114.0
 aws-cdk.aws-servicecatalog==v1.114.0
 aws-cdk.aws-servicediscovery==v1.114.0
