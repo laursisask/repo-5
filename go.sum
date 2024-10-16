@@ -300,8 +300,8 @@ github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/me
 github.com/go-test/deep v1.0.2-0.20181118220953-042da051cf31/go.mod h1:wGDj63lr65AM2AQyKZd/NYHGb0R+1RLqB8NKt3aSFNA=
 github.com/go-test/deep v1.0.8 h1:TDsG77qcSprGbC6vTN8OuXp5g+J+b5Pcguhf7Zt61VM=
 github.com/go-test/deep v1.0.8/go.mod h1:5C2ZWiW0ErCdrYzpqxLbTX7MG14M9iiw8DgHncVwcsE=
-github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1 h1:TQcrn6Wq+sKGkpyPvppOz99zsMBaUOKXq6HSv655U1c=
-github.com/go-viper/mapstructure/v2 v2.0.0-alpha.1/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
+github.com/go-viper/mapstructure/v2 v2.1.0 h1:gHnMa2Y/pIxElCH2GlZZ1lZSsn6XMtufpGyP1XxdC/w=
+github.com/go-viper/mapstructure/v2 v2.1.0/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlndYOZ6rGS0BRZIxGhM=
 github.com/go-zookeeper/zk v1.0.3 h1:7M2kwOsc//9VeeFiPtf+uSJlVpU66x9Ba5+8XK7/TDg=
 github.com/go-zookeeper/zk v1.0.3/go.mod h1:nOB03cncLtlp4t+UAkGSV+9beXP/akpekBwL+UX1Qcw=
 github.com/gobwas/glob v0.2.3 h1:A4xDbljILXROh+kObIiy5kIaPYD8e96x1tgBhUI5J+Y=
@@ -959,8 +959,8 @@ go.opentelemetry.io/collector/config/configtls v0.102.1 h1:7fr+PU9BRg0HRc1Pn3WmD
 go.opentelemetry.io/collector/config/configtls v0.102.1/go.mod h1:KHdrvo3cwosgDxclyiLWmtbovIwqvaIGeTXr3p5721A=
 go.opentelemetry.io/collector/config/internal v0.102.1 h1:HFsFD3xpHUuNHb8/UTz5crJw1cMHzsJQf/86sgD44hw=
 go.opentelemetry.io/collector/config/internal v0.102.1/go.mod h1:Vig3dfeJJnuRe1kBNpszBzPoj5eYnR51wXbeq36Zfpg=
-go.opentelemetry.io/collector/confmap v0.102.1 h1:wZuH+d/P11Suz8wbp+xQCJ0BPE9m5pybtUe74c+rU7E=
-go.opentelemetry.io/collector/confmap v0.102.1/go.mod h1:KgpS7UxH5rkd69CzAzlY2I1heH8Z7eNCZlHmwQBMxNg=
+go.opentelemetry.io/collector/confmap v1.17.0 h1:5UKHtPGtzNGaOGBsJ6aFpvsKElNUXOVuErBfC0eTWLM=
+go.opentelemetry.io/collector/confmap v1.17.0/go.mod h1:GrIZ12P/9DPOuTpe2PIS51a0P/ZM6iKtByVee1Uf3+k=
 go.opentelemetry.io/collector/confmap/converter/expandconverter v0.102.1 h1:s0RxnaABoRxtfvUeimZ0OOsF83wD/EK1tR2N5GZyst0=
 go.opentelemetry.io/collector/confmap/converter/expandconverter v0.102.1/go.mod h1:ZwSMlOSIzmrrSSVNoMPDr21SQx7E52bZFMQJSOZ+EhY=
 go.opentelemetry.io/collector/confmap/provider/envprovider v0.102.1 h1:4KLw0pTChIqDfw0ckZ411aQDw98pu2dDOqgBHXfJm8M=
