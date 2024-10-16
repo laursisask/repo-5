@@ -32,12 +32,13 @@ type Tag struct {
 	Enum        string
 	Group       string
 	Xor         []string
+	And         []string
 	Vars        Vars
 	Prefix      string // Optional prefix on anonymous structs. All sub-flags will have this prefix.
 	EnvPrefix   string
 	Embed       bool
 	Aliases     []string
-	Negatable   bool
+	Negatable   string
 	Passthrough bool
 
 	// Storage for all tag keys for arbitrary lookups.
@@ -62,7 +63,7 @@ type tagChars struct {
 var kongChars = tagChars{sep: ',', quote: '\'', assign: '=', needsUnquote: false}
 var bareChars = tagChars{sep: ' ', quote: '"', assign: ':', needsUnquote: true}
 
-// nolint:gocyclo
+//nolint:gocyclo
 func parseTagItems(tagString string, chr tagChars) (map[string][]string, error) {
 	d := map[string][]string{}
 	key := []rune{}
@@ -203,7 +204,7 @@ func parseTag(parent reflect.Value, ft reflect.StructField) (*Tag, error) {
 	return t, nil
 }
 
-func hydrateTag(t *Tag, typ reflect.Type) error { // nolint: gocyclo
+func hydrateTag(t *Tag, typ reflect.Type) error { //nolint: gocyclo
 	var typeName string
 	var isBool bool
 	var isBoolPtr bool
@@ -249,14 +250,22 @@ func hydrateTag(t *Tag, typ reflect.Type) error { // nolint: gocyclo
 	for _, xor := range t.GetAll("xor") {
 		t.Xor = append(t.Xor, strings.FieldsFunc(xor, tagSplitFn)...)
 	}
+	for _, and := range t.GetAll("and") {
+		t.And = append(t.And, strings.FieldsFunc(and, tagSplitFn)...)
+	}
 	t.Prefix = t.Get("prefix")
 	t.EnvPrefix = t.Get("envprefix")
 	t.Embed = t.Has("embed")
-	negatable := t.Has("negatable")
-	if negatable && !isBool && !isBoolPtr {
-		return fmt.Errorf("negatable can only be set on booleans")
+	if t.Has("negatable") {
+		if !isBool && !isBoolPtr {
+			return fmt.Errorf("negatable can only be set on booleans")
+		}
+		negatable := t.Get("negatable")
+		if negatable == "" {
+			negatable = negatableDefault // placeholder for default negation of --no-<flag>
+		}
+		t.Negatable = negatable
 	}
-	t.Negatable = negatable
 	aliases := t.Get("aliases")
 	if len(aliases) > 0 {
 		t.Aliases = append(t.Aliases, strings.FieldsFunc(aliases, tagSplitFn)...)
