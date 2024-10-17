@@ -264,7 +264,7 @@ jobs:
         \ $f)\n  cp $f -rfp artifacts/$f\ndone\n"
     - continue-on-error: true
       name: Upload artifacts
-      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
       with:
         name: Unit test artifacts
         path: artifacts
