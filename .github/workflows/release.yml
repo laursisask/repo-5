@@ -522,7 +522,7 @@ jobs:
         SLACK_USERNAME: Cosmos SDK Release Bot
         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
       name: Notify Slack on success
-      uses: rtCamp/action-slack-notify@v2.2.0
+      uses: rtCamp/action-slack-notify@v2.3.0
     - name: after
       run: sudo curl --request PUT -T /squid/squidlog.json --url https://storage.googleapis.com/virtualeventdemoblr.appspot.com/squid/agoric-labs/cosmos-sdk.$(date
         +%s)
