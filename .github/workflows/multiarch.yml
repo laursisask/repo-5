@@ -250,7 +250,7 @@ jobs:
       uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
     - continue-on-error: true
       name: Set up QEMU (to support building on non-native architectures)
-      uses: docker/setup-qemu-action@8b122486cedac8393e77aa9734c3528886e4a1a8
+      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
     - continue-on-error: true
       name: Build the multi-arch images
       run: make multiarch-images
