@@ -256,7 +256,7 @@ jobs:
     - continue-on-error: true
       if: ${{ failure() }}
       name: Raise an Issue to report broken links
-      uses: peter-evans/create-issue-from-file@99b87c35610e986ad2034a7b0518a9b3ebea541b
+      uses: peter-evans/create-issue-from-file@e8ef132d6df98ed982188e460ebb3b5d4ef3a9cd
       with:
         content-filepath: .github/ISSUE_TEMPLATE/broken-link.md
         labels: automated, broken link
