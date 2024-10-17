@@ -1790,7 +1790,7 @@ jobs:
       uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
     - continue-on-error: true
       name: Run markdown-link-check
-      uses: gaurav-nelson/github-action-markdown-link-check@228fbf4ffb2a86a65314866e9b2322b519fd885f
+      uses: gaurav-nelson/github-action-markdown-link-check@7d83e59a57f3c201c76eed3d33dff64ec4452d27
       with:
         base-branch: ${{ github.base_ref }}
         check-modified-files-only: 'yes'
