@@ -248,7 +248,7 @@ jobs:
     - continue-on-error: true
       id: get-pr-commits
       name: Get PR commits
-      uses: tim-actions/get-pr-commits@c64db31d359214d244884dd68f971a110b29ab83
+      uses: tim-actions/get-pr-commits@198af03565609bb4ed924d1260247b4881f09e7d
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
     - continue-on-error: true
